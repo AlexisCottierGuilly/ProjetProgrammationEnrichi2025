@@ -46,14 +46,22 @@ def point_in_polygon(point, polygon):
     is inside the polygon (the opposite is also true).
 
     Steps:
-    1 - Cast a ray
+    1 - Cast a ray to thr right of the point
     2 - Calculate the number of intersections with
         the border.
     '''
 
-    return True
+    lines_crossed = 0
+    for line in polygon.lines:
+        x1, y1 = line.point1.x, line.point1.y
+        x2, y2 = line.point2.x, line.point2.y
 
+        if (y1 <= point.y < y2) or (y2 <= point.y < y1):
+            # The line is at the right height
+            # Now, check the x position
+            edge_x = x1 + (point.y - y1) * (x2 - x1) / (y2 - y1)
 
-def raycast(direction, target, polygon):
-    # Return the number of edges crossed
-    return 0
+            if edge_x >= point.x:
+                lines_crossed += 1
+
+    return lines_crossed % 2 == 1

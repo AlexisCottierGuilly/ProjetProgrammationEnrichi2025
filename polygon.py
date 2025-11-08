@@ -37,6 +37,7 @@ class Polygon:
         self.points = poly_gen.generate_polygon_points(
             self.seed, center, scale, smoothness
         )
+        self.update_lines()
         self.recalculate_bounds()
         self.update_patch_polygon()
 
@@ -55,7 +56,7 @@ class Polygon:
 
         if len(self.points) >= 2:
             self.lines.append(
-                Line(self.points[1], self.points[0])
+                Line(self.points[-1], self.points[0])
             )
 
     def get_area(self):

@@ -14,6 +14,19 @@ mpl.rcParams.update({
 })
 
 
+def on_mouse_move(event):
+    if event.inaxes:
+        x, y = event.xdata, event.ydata
+        point.set_data([x], [y])
+
+        # Check if the point is in the polygon
+        inside = polygon.point_in_polygon(poly.Point(x, y))
+        color = "blue" if inside else "red"
+
+        point.set_color(color)
+        fig.canvas.draw_idle()
+
+
 def on_key_press(pressed_key):
     if pressed_key.key == 'r':
         regenerate()
@@ -21,6 +34,7 @@ def on_key_press(pressed_key):
 
 def regenerate():
     polygon.generate(new_seed=True, scale=1)
+    print([str(l) for l in polygon.lines])
     update_lims(polygon)
     plt.draw()
 
@@ -47,8 +61,11 @@ ax = fig.add_subplot(111, facecolor='black')
 polygon = poly.Polygon()
 regenerate()
 
+point, = ax.plot([], [], 'o', color='blue')
+
 ax.add_patch(polygon.polygon_patch)
 fig.canvas.mpl_connect('key_press_event', on_key_press)
+fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)
 
 update_lims(polygon)
 
