@@ -65,6 +65,9 @@ class Polygon:
     def point_in_polygon(self, point):
         return poly_utls.point_in_polygon(point, self)
 
+    def point_to_line_distance(self, point, line):
+        return poly_utls.point_to_line_distance(point, line)
+
     def recalculate_bounds(self):
         self.bounds = poly_utls.calculate_bounds(self)
 
@@ -77,6 +80,12 @@ class Polygon:
             vertices = [(0, 0)]
 
         self.polygon_patch.set_xy(vertices)
+
+    def set_points(self, points):
+        self.points = points
+        self.update_lines()
+        self.recalculate_bounds()
+        self.update_patch_polygon()
 
 
 class Point:

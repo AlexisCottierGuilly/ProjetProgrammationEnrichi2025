@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 
 def calculate_bounds(polygon):
@@ -73,3 +74,25 @@ def calculate_area(polygon):
         total_area += x1 * y2 - x2 * y1
 
     return abs(total_area) / 2
+
+
+def point_to_line_distance(point, line):
+    x1, y1 = line.point1.x, line.point1.y
+    x2, y2 = line.point2.x, line.point2.y
+
+    line_v = [x2 - x1, y2 - y1]
+    pt_to_line_v = [point.x - x1, point.y - y1]
+
+    # Orthogonal projection of pt_to_line on line_v. t is a multiple of line_v
+    t = (line_v[0] * pt_to_line_v[0] + line_v[1] * pt_to_line_v[1]) / (line_v[0] ** 2 + line_v[1] ** 2)
+
+    # We want the shortest distance between point and line, so clamb t to be on the line
+    projected_point = None
+    if t < 0:
+        projected_point = [x1, y1]
+    elif t > 1:
+        projected_point = [x2, y2]
+    else:
+        projected_point = [x1 + line_v[0] * t, y1 + line_v[1] * t]
+
+    return math.sqrt((point.x - projected_point[0]) ** 2 + (point.y - projected_point[1]) ** 2)

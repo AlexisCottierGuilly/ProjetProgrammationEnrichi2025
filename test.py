@@ -1,6 +1,8 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import polygon as poly
+import polygon_optimization as poly_optim
+import random
 
 mpl.rcParams.update({
     'figure.facecolor': '#121212',
@@ -33,7 +35,30 @@ def on_key_press(pressed_key):
 
 
 def regenerate():
-    polygon.generate(new_seed=True, scale=1, smoothness=1)
+    # Generate random points
+    included_pt_pos = [[], []]
+    excluded_pt_pos = [[], []]
+    pts = []
+    for i in range(15):
+        x = random.uniform(-5, 5)
+        y = random.uniform(-5, 5)
+        state = random.choice([poly.INCLUDED, poly.EXCLUDED])
+        pt = poly.Point(x, y, state)
+        pts.append(pt)
+
+        if state == poly.INCLUDED:
+            included_pt_pos[0].append(x)
+            included_pt_pos[1].append(y)
+        else:
+            excluded_pt_pos[0].append(x)
+            excluded_pt_pos[1].append(y)
+
+    polygon.set_points(poly_optim.convex_hull(pts).points)
+
+    random_included_points.set_data(included_pt_pos)
+    random_excluded_points.set_data(excluded_pt_pos)
+
+    #polygon.generate(new_seed=True, scale=1, smoothness=1)
 
     """
     print([str(l) for l in polygon.lines])
@@ -65,11 +90,14 @@ fig = plt.figure(facecolor="#101010")
 ax = fig.add_subplot(111, facecolor='#050505')
 
 polygon = poly.Polygon()
+
+point, = ax.plot([], [], 'x', color='blue')
+random_included_points, = ax.plot([], [], 'o', color='blue')
+random_excluded_points, = ax.plot([], [], 'o', color='red')
+
 regenerate()
-
-point, = ax.plot([], [], 'o', color='blue')
-
 ax.add_patch(polygon.polygon_patch)
+
 fig.canvas.mpl_connect('key_press_event', on_key_press)
 fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)
 
