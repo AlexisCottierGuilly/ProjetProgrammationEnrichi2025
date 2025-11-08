@@ -1,9 +1,57 @@
 import math
 import polygon as poly
+import polygon_utilities as poly_utils
 
 
-def exclude_next(polygon):
-    pass
+def exclude_or_include_next(points, polygon):
+    if not points:
+        return
+
+    pt_line_excluded = []
+
+    left_pts = points.copy()
+    while True:
+        longest_distance = 0
+        selected_point = None
+        selected_line_index = None
+        for point in left_pts:
+            local_shortest = -1
+            local_selected_line_i = None
+            for i, line in enumerate(polygon.lines):
+                if [point, line] in pt_line_excluded:
+                    continue
+
+                dist = polygon.point_to_line_distance(point, line)
+                if local_shortest == -1 or local_shortest >= dist:
+                    local_shortest = dist
+                    local_selected_line_i = i
+
+            if longest_distance <= local_shortest:
+                longest_distance = local_shortest
+                selected_point = point
+                selected_line_index = local_selected_line_i
+
+        line = polygon.lines[selected_line_index]
+
+        line1 = poly.Line(line.point1, selected_point)
+        line2 = poly.Line(selected_point, line.point2)
+
+        intersects = poly_utils.intersects_with_polygon(line1, polygon) or poly_utils.intersects_with_polygon(line2, polygon)
+
+        if not intersects:
+            del polygon.lines[selected_line_index]
+            polygon.lines.insert(selected_line_index, line2)
+            polygon.lines.insert(selected_line_index, line1)
+            polygon.update_points()
+            break
+        else:
+            print("Line intersected")
+            pt_line_excluded.append([selected_point, line])
+
+        """p2 = line.point2
+        p2_i = polygon.points.index(p2)
+        polygon.points.insert(p2_i, selected_point)
+        polygon.update_lines()"""
 
 
 def convex_hull(points):

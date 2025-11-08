@@ -4,6 +4,7 @@ from matplotlib.patches import Polygon as PatchPolygon
 
 import polygon_utilities as poly_utls
 import polygon_generator as poly_gen
+import polygon_optimization as poly_optim
 
 INCLUDED = 0
 EXCLUDED = 1
@@ -41,6 +42,24 @@ class Polygon:
         self.recalculate_bounds()
         self.update_patch_polygon()
 
+    def optimize(self, points):
+        did_change = False
+        included_excluded = poly_utls.get_included_excluded(points, self)
+
+        if included_excluded:
+            poly_optim.exclude_or_include_next(included_excluded, self)
+            did_change = True
+        else:
+            excluded_included = poly_utls.get_excluded_included(points, self)
+            if excluded_included:
+                poly_optim.exclude_or_include_next(excluded_included, self)
+                did_change = True
+
+        self.recalculate_bounds()
+        self.update_patch_polygon()
+
+        return did_change
+
     def update_lines(self):
         self.lines = []
 
@@ -58,6 +77,11 @@ class Polygon:
             self.lines.append(
                 Line(self.points[-1], self.points[0])
             )
+
+    def update_points(self):
+        self.points = []
+        for line in self.lines:
+            self.points.append(line.point1)
 
     def get_area(self):
         return poly_utls.calculate_area(self)

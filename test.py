@@ -32,17 +32,35 @@ def on_mouse_move(event):
 def on_key_press(pressed_key):
     if pressed_key.key == 'r':
         regenerate()
+    elif pressed_key.key == 'o':
+        optimize()
+
+
+def optimize():
+    print("Optimize")
+    polygon.optimize(pts)
+    update_lims(polygon)
+    plt.draw()
 
 
 def regenerate():
+    global pts
+    pts = []
+
     # Generate random points
     included_pt_pos = [[], []]
     excluded_pt_pos = [[], []]
-    pts = []
-    for i in range(15):
+
+    seed = random.randint(1, 1_000_000_000_000)
+    random.seed(seed)
+    print(f"Seed: {seed}")
+    nb_included = 25
+    nb_excluded = 25
+
+    for i in range(nb_included + nb_excluded):
         x = random.uniform(-5, 5)
         y = random.uniform(-5, 5)
-        state = random.choice([poly.INCLUDED, poly.EXCLUDED])
+        state = poly.INCLUDED if i < nb_included else poly.EXCLUDED
         pt = poly.Point(x, y, state)
         pts.append(pt)
 
@@ -67,8 +85,20 @@ def regenerate():
     """
 
     update_lims(polygon)
-    plt.draw()
 
+    step = 10
+    i = 0
+    while True:
+        did_change = polygon.optimize(pts)
+        if not did_change:
+            break
+        if i % step == 0:
+            print("ici")
+            plt.draw()
+            plt.pause(0.01)
+        i += 1
+
+    plt.draw()
 
 def update_lims(ply):
     spacing_factor = 1.25
@@ -90,6 +120,7 @@ fig = plt.figure(facecolor="#101010")
 ax = fig.add_subplot(111, facecolor='#050505')
 
 polygon = poly.Polygon()
+pts = []
 
 point, = ax.plot([], [], 'x', color='blue')
 random_included_points, = ax.plot([], [], 'o', color='blue')
