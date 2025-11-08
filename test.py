@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import polygon as poly
 
 mpl.rcParams.update({
-    'figure.facecolor': 'black',
-    'axes.facecolor': 'black',
+    'figure.facecolor': '#121212',
+    'axes.facecolor': '#121212',
     'axes.edgecolor': 'white',
     'axes.labelcolor': 'white',
     'xtick.color': 'white',
@@ -33,8 +33,14 @@ def on_key_press(pressed_key):
 
 
 def regenerate():
-    polygon.generate(new_seed=True, scale=1)
+    polygon.generate(new_seed=True, scale=1, smoothness=1)
+
+    """
     print([str(l) for l in polygon.lines])
+    print(f"Area: {polygon.get_area()} u^2")
+    print()
+    """
+
     update_lims(polygon)
     plt.draw()
 
@@ -55,8 +61,8 @@ def update_lims(ply):
     ax.set_aspect('equal')
 
 
-fig = plt.figure(facecolor="black")
-ax = fig.add_subplot(111, facecolor='black')
+fig = plt.figure(facecolor="#101010")
+ax = fig.add_subplot(111, facecolor='#050505')
 
 polygon = poly.Polygon()
 regenerate()

@@ -1,10 +1,6 @@
 import math
 
 
-def calculate_area(polygon):
-    return 0
-
-
 def calculate_bounds(polygon):
     if len(polygon.points) == 0:
         return [(0, 0), (0, 0)]
@@ -65,3 +61,15 @@ def point_in_polygon(point, polygon):
                 lines_crossed += 1
 
     return lines_crossed % 2 == 1
+
+
+def calculate_area(polygon):
+    # Shoelace Formula
+
+    total_area = 0
+    for line in polygon.lines:
+        x1, y1 = line.point1.x, line.point1.y
+        x2, y2 = line.point2.x, line.point2.y
+        total_area += x1 * y2 - x2 * y1
+
+    return abs(total_area) / 2

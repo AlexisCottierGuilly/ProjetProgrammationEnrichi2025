@@ -16,7 +16,7 @@ class Polygon:
         self.lines = lines or []
         self.seed = seed or self.get_random_seed()
 
-        self.polygon_patch = PatchPolygon([(0, 0)], closed=True)
+        self.polygon_patch = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
 
         self.bounds = [(0, 0), (0, 0)]  # [center, scale]
 
