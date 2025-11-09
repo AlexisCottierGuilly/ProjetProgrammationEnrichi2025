@@ -54,8 +54,8 @@ def regenerate():
     seed = random.randint(1, 1_000_000_000_000)
     random.seed(seed)
     print(f"Seed: {seed}")
-    nb_included = 25
-    nb_excluded = 25
+    nb_included = 250
+    nb_excluded = 250
 
     for i in range(nb_included + nb_excluded):
         x = random.uniform(-5, 5)
@@ -93,10 +93,11 @@ def regenerate():
         if not did_change:
             break
         if i % step == 0:
-            print("ici")
             plt.draw()
-            plt.pause(0.01)
+            plt.pause(0.005)
         i += 1
+
+    print(f"Seed: {seed}, perimeter: {polygon.get_perimeter():.5f}")
 
     plt.draw()
 
@@ -126,8 +127,8 @@ point, = ax.plot([], [], 'x', color='blue')
 random_included_points, = ax.plot([], [], 'o', color='blue')
 random_excluded_points, = ax.plot([], [], 'o', color='red')
 
-regenerate()
 ax.add_patch(polygon.polygon_patch)
+regenerate()
 
 fig.canvas.mpl_connect('key_press_event', on_key_press)
 fig.canvas.mpl_connect('motion_notify_event', on_mouse_move)

@@ -45,7 +45,6 @@ def exclude_or_include_next(points, polygon):
             polygon.update_points()
             break
         else:
-            print("Line intersected")
             pt_line_excluded.append([selected_point, line])
 
         """p2 = line.point2

@@ -45,15 +45,13 @@ class Polygon:
     def optimize(self, points):
         did_change = False
         included_excluded = poly_utls.get_included_excluded(points, self)
+        excluded_included = poly_utls.get_excluded_included(points, self)
 
-        if included_excluded:
-            poly_optim.exclude_or_include_next(included_excluded, self)
+        problematic_points = included_excluded + excluded_included
+
+        if problematic_points:
+            poly_optim.exclude_or_include_next(problematic_points, self)
             did_change = True
-        else:
-            excluded_included = poly_utls.get_excluded_included(points, self)
-            if excluded_included:
-                poly_optim.exclude_or_include_next(excluded_included, self)
-                did_change = True
 
         self.recalculate_bounds()
         self.update_patch_polygon()
@@ -85,6 +83,9 @@ class Polygon:
 
     def get_area(self):
         return poly_utls.calculate_area(self)
+
+    def get_perimeter(self):
+        return poly_utls.calculate_perimeter(self)
 
     def point_in_polygon(self, point):
         return poly_utls.point_in_polygon(point, self)

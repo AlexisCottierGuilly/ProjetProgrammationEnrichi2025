@@ -78,6 +78,14 @@ def calculate_area(polygon):
     return abs(total_area) / 2
 
 
+def calculate_perimeter(polygon):
+    perimeter = 0
+    for line in polygon.lines:
+        perimeter += line.get_length()
+
+    return perimeter
+
+
 def point_to_line_distance(point, line):
     x1, y1 = line.point1.x, line.point1.y
     x2, y2 = line.point2.x, line.point2.y
