@@ -39,10 +39,11 @@ class Polygon:
             self.seed, center, scale, smoothness
         )
         self.update_lines()
+
         self.recalculate_bounds()
         self.update_patch_polygon()
 
-    def optimize(self, points):
+    def optimize(self, points, update_patch=True, update_bounds=True):
         did_change = False
         included_excluded = poly_utls.get_included_excluded(points, self)
         excluded_included = poly_utls.get_excluded_included(points, self)
@@ -53,8 +54,10 @@ class Polygon:
             poly_optim.exclude_or_include_next(problematic_points, self)
             did_change = True
 
-        self.recalculate_bounds()
-        self.update_patch_polygon()
+        if update_bounds:
+            self.recalculate_bounds()
+        if update_patch:
+            self.update_patch_polygon()
 
         return did_change
 
