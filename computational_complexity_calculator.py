@@ -4,11 +4,10 @@ import parameter_optimization as para_optim
 import time
 import matplotlib.pyplot as plt
 
-# y = 9.766625735328421e-09x^3.128842516245288
-# 2.2495241356997548e-08x^3.004414107026635
+# ~O(n^3)
 
-iterations_per_num = 10
-num_points = [5, 10, 25, 35, 50, 75, 100, 150, 200, 300, 450, 650]
+iterations_per_num = 5
+num_points = [5, 10, 25, 35, 50, 75, 100, 150, 200, 250, 300, 350, 400] #, 450], 650]
 
 # O(n^2.96862) using Desmos
 
@@ -39,12 +38,25 @@ print("\n".join([f"{num_points[i]}\t{results[i]}" for i in range(len(num_points)
 
 # Calculate the y = ax^b that is the closest to the data
 data = [(num_points[i], results[i]) for i in range(len(num_points))]
-a, b = para_optim.find_parameters(data, 0.001)  # or 100000 iterations max
-prediction_data = [a * x ** b for x in num_points]
+a, b, error = para_optim.find_parameters(data, 0.00025)  # or 100000 iterations max
 
-print(f"Prediction: y = {a}x^{b}")
+prediction_data = []
+prediction_x = []
+prediction_pts = 1000
+step = max(num_points) / 1000
+for i in range(prediction_pts):
+    n = i * step
+    prediction_x.append(n)
+    prediction_data.append(a * n ** b)
 
-plt.plot(num_points, results)
-plt.plot(num_points, prediction_data, color="yellow")
+print(f"Prediction: y = {a}x^{b} (error: {error})")
+
+plt.plot(num_points, results, color="blue")
+plt.plot(prediction_x, prediction_data, color="orange", linestyle="--")
+
+plt.grid()
+plt.title("Computational Complexity Calculator")
+
+plt.legend(["Data", f"Approximation\nO(n^{b:.3f})"])
 
 plt.show()
