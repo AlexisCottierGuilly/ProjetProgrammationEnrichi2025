@@ -71,7 +71,8 @@ def regenerate():
             excluded_pt_pos[0].append(x)
             excluded_pt_pos[1].append(y)
 
-    polygon.set_points(poly_optim.convex_hull(pts).points)
+    polygon.convex_hull(pts)
+    polygon.update_lines()
 
     random_included_points.set_data(included_pt_pos)
     random_excluded_points.set_data(excluded_pt_pos)

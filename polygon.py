@@ -43,6 +43,20 @@ class Polygon:
         self.recalculate_bounds()
         self.update_patch_polygon()
 
+    def convex_hull(self, points):
+        self.set_points(poly_optim.convex_hull(points).points)
+
+    def max_optimize(self, points, update_patch=True, update_bounds=True):
+        while True:
+            did_change = self.optimize(points, update_patch=False, update_bounds=False)
+            if not did_change:
+                break
+
+        if update_bounds:
+            self.recalculate_bounds()
+        if update_patch:
+            self.update_patch_polygon()
+
     def optimize(self, points, update_patch=True, update_bounds=True):
         did_change = False
         included_excluded = poly_utls.get_included_excluded(points, self)
