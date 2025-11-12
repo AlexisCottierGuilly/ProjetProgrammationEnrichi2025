@@ -48,6 +48,8 @@ def regenerate():
     global pts
     pts = []
 
+    point.set_data([], [])
+
     # Generate random points
     included_pt_pos = [[], []]
     excluded_pt_pos = [[], []]

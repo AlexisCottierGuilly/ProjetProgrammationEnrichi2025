@@ -30,9 +30,11 @@ def generate_polygon_points(seed, center, scale, smoothness=1):
     return points
 
 
-def get_random_points(included_pts=10, excluded_pts=10, x_range=None, y_range=None):
+def get_random_points(seed, included_pts=10, excluded_pts=10, x_range=None, y_range=None):
     x_range = x_range or [0, 1]
     y_range = y_range or [0, 1]
+
+    random.seed(seed)
 
     pts = []
     for i in range(included_pts + excluded_pts):
@@ -41,5 +43,7 @@ def get_random_points(included_pts=10, excluded_pts=10, x_range=None, y_range=No
         y = random.uniform(*y_range)
         pt = poly.Point(x, y, state)
         pts.append(pt)
+
+    random.seed()
 
     return pts
