@@ -166,7 +166,7 @@ def best_perimeter_task(combinations, points, counter, lock):
     for combination in combinations:
         for permutation in get_all_permutations(combination):
             iterations += 1
-            p = poly.Polygon(permutation)
+            p = poly.Polygon(permutation, create_patch=False, update_bounds=False)
 
             peri = p.get_perimeter()
             if current_best is None or peri < current_best_peri:

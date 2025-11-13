@@ -12,20 +12,26 @@ IGNORE = 2
 
 
 class Polygon:
-    def __init__(self, points=None, lines=None, seed=None):
+    def __init__(self, points=None, lines=None, seed=None, create_patch=True, update_bounds=True):
         self.points = points or []
         self.lines = lines or []
         self.seed = seed or self.get_random_seed()
 
-        self.polygon_patch = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
+        if create_patch:
+            self.polygon_patch = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
+        else:
+            self.polygon_patch = None
 
         self.bounds = [(0, 0), (0, 0)]  # [center, scale]
 
         if self.points != [] and self.lines == []:
             self.update_lines()
 
-        self.recalculate_bounds()
-        self.update_patch_polygon()
+        if update_bounds:
+            self.recalculate_bounds()
+
+        if create_patch:
+            self.update_patch_polygon()
 
     def get_random_seed(self):
         return random.randint(1, 1_000_000_000_000)
