@@ -163,3 +163,7 @@ def on_segment(p1, p2, p):
 
 def intersects_with_polygon(line, polygon):
     return any([intersects_with_line(line, l) for l in polygon.lines])
+
+
+def multiple_intersects_with_polygon(lines, polygon):
+    return any([any([intersects_with_line(line, l) for line in lines]) for l in polygon.lines])

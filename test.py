@@ -54,10 +54,10 @@ def regenerate():
     included_pt_pos = [[], []]
     excluded_pt_pos = [[], []]
 
-    seed = random.randint(1, 1_000_000_000_000)
+    seed = 300 #random.randint(1, 1_000_000_000_000)
     random.seed(seed)
-    nb_included = 25
-    nb_excluded = 25
+    nb_included = 500
+    nb_excluded = 500
 
     for i in range(nb_included + nb_excluded):
         x = random.uniform(-5, 5)
@@ -90,11 +90,11 @@ def regenerate():
     update_lims(polygon)
 
     optim_time = 0
-    step = 5
+    step = 50
     i = 0
     while True:
         t = time.time()
-        did_change = polygon.optimize(pts, update_bounds=True, update_patch=True)
+        did_change = polygon.optimize(pts, update_bounds=False, update_patch=False)
         optim_time += time.time() - t
 
         if not did_change:
@@ -109,6 +109,7 @@ def regenerate():
     print(f"Seed: {seed}, Perimeter: {polygon.get_perimeter():.5f}, In {optim_time:.5f} secs")
 
     plt.draw()
+
 
 def update_lims(ply):
     spacing_factor = 1.25
@@ -133,8 +134,8 @@ polygon = poly.Polygon()
 pts = []
 
 point, = ax.plot([], [], 'x', color='blue')
-random_included_points, = ax.plot([], [], 'o', color='blue')
-random_excluded_points, = ax.plot([], [], 'o', color='red')
+random_included_points, = ax.plot([], [], 'o', color='blue', markersize=1)
+random_excluded_points, = ax.plot([], [], 'o', color='red', markersize=1)
 
 ax.add_patch(polygon.polygon_patch)
 regenerate()

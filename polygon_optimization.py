@@ -42,13 +42,14 @@ def exclude_or_include_next(points, polygon):
         line1 = poly.Line(line.point1, selected_point)
         line2 = poly.Line(selected_point, line.point2)
 
-        intersects = poly_utils.intersects_with_polygon(line1, polygon) or poly_utils.intersects_with_polygon(line2, polygon)
+        intersects = poly_utils.multiple_intersects_with_polygon([line1, line2], polygon)
 
         if not intersects:
             del polygon.lines[selected_line_index]
             polygon.lines.insert(selected_line_index, line2)
             polygon.lines.insert(selected_line_index, line1)
-            polygon.update_points()
+            idx = polygon.points.index(line.point2)
+            polygon.points.insert(idx, selected_point)
             break
         else:
             pt_line_excluded.append([selected_point, line])

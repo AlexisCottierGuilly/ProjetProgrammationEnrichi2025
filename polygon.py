@@ -120,6 +120,9 @@ class Polygon:
         self.bounds = poly_utls.calculate_bounds(self)
 
     def update_patch_polygon(self):
+        if self.polygon_patch is None:
+            self.polygon = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
+
         vertices = []
         for pt in self.points:
             vertices.append((pt.x, pt.y))
