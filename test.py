@@ -56,8 +56,8 @@ def regenerate():
 
     seed = random.randint(1, 1_000_000_000_000)
     random.seed(seed)
-    nb_included = 15
-    nb_excluded = 15
+    nb_included = 25
+    nb_excluded = 25
 
     for i in range(nb_included + nb_excluded):
         x = random.uniform(-5, 5)
@@ -103,7 +103,7 @@ def regenerate():
             polygon.recalculate_bounds()
             polygon.update_patch_polygon()
             plt.draw()
-            plt.pause(1)
+            plt.pause(0.005)
         i += 1
 
     polygon.recalculate_bounds()
