@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 # ~O(n^3)
 
 iterations_per_num = 5
-num_points = [5, 10, 25, 35, 50, 75, 100, 150, 200, 250, 300, 350, 400] #, 450], 650]
+num_points = [5, 10, 25, 35, 50, 75, 100, 150, 200, 250, 300, 350]  #, 400, 450, 650, 800]
 
 # O(n^2.96862) using Desmos
 
@@ -19,7 +19,7 @@ for num in num_points:
     print(f"Measuring polygons with {num} points.")
     for i in range(iterations_per_num):
         print(f"\tIteration {i + 1}", end=" ")
-        pts = poly_gen.get_random_points(num // 2, num // 2, x_range, y_range)
+        pts = poly_gen.get_random_points(None, num // 2, num // 2, x_range, y_range)
         polygon = poly.Polygon(pts)
 
         polygon.convex_hull(pts)
