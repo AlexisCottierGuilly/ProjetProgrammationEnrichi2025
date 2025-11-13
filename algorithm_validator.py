@@ -256,30 +256,33 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
     return current_best
 
 
-def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_point, all_points, is_end):
-    print(current_perimeter)
-    if current_point is None:
-        for point in all_points:
-            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
-
-    if len(points_in_line) > 0:
-        line = poly.Line(points_in_line[-1], current_point)
-        current_perimeter += line.get_length()
-
-    if current_perimeter >= min_perimeter:
-        return
-    if is_end:
-        return False
-
-    points_in_line.append(current_point)
-
-    for point in all_points:
-        if point not in points_in_line:
-            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
-        elif point == points_in_line[0]:
-            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, True)
-
-    return True
+# def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_point, all_points, is_end):
+#     print(current_perimeter)
+#     if current_point is None:
+#         for point in all_points:
+#             return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
+#
+#     if len(points_in_line) > 0:
+#         line = poly.Line(points_in_line[-1], current_point)
+#         current_perimeter += line.get_length()
+#
+#     if current_perimeter >= min_perimeter:
+#         return
+#     if is_end:
+#         polygon = poly.Polygon(points_in_line, update_bounds=False, create_patch=False)
+#         if contains_all_blues_and_exclude_reds(polygon, all_points):
+#             return False
+#
+#     points_in_line.append(current_point)
+#
+#     for point in all_points:
+#         if point not in points_in_line:
+#             print("as")
+#             return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
+#         elif point == points_in_line[0]:
+#             return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, True)
+#
+#     return True
 
 
 if __name__ == "__main__":
