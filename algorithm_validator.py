@@ -255,11 +255,36 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
 
     return current_best
 
+def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_point, all_points, is_end):
+    print(current_perimeter)
+    if current_point is None:
+        for point in all_points:
+            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
+
+    if len(points_in_line) > 0:
+        line = poly.Line(points_in_line[-1], current_point)
+        current_perimeter += line.get_length()
+
+    if current_perimeter >= min_perimeter:
+        return
+    if is_end:
+        return False
+
+    points_in_line.append(current_point)
+
+    for point in all_points:
+        if point not in points_in_line:
+            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, False)
+        elif point == points_in_line[0]:
+            return is_min_perimeter(current_perimeter, min_perimeter, points_in_line, point, all_points, True)
+
+    return True
 
 if __name__ == "__main__":
     auto_test = False
     while True:
         seed = random.randint(1, 1_000_000_000_000_000)
+        # seed = 1
         print(f"Seed: {seed}")
 
         data = poly_gen.get_random_points(seed, 5, 5)
@@ -272,9 +297,16 @@ if __name__ == "__main__":
         print(f"Algorithm answer: {perimeter:.4f} u")
 
         t = time.time()
+
+        if is_min_perimeter(0, perimeter, [], None, data, False):
+            print("It is the minimum perimeter")
+
+        elapsed_time = time.time() - t
+        print(elapsed_time)
+
+        t = time.time()
         actual_min_polygon = get_best_perimeter_polygon(data, update_bar, NUMBER_OF_THREADS)
         elapsed_time = time.time() - t
-
         actual_min_perimeter = actual_min_polygon.get_perimeter()
 
         correct = round(actual_min_perimeter, 9) == round(perimeter, 9)
