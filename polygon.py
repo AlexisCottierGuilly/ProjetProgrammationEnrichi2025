@@ -121,7 +121,7 @@ class Polygon:
 
     def update_patch_polygon(self):
         if self.polygon_patch is None:
-            self.polygon = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
+            self.polygon_patch = PatchPolygon([(0, 0)], closed=True, fill=True, facecolor="#101010", edgecolor='white', linewidth=2)
 
         vertices = []
         for pt in self.points:

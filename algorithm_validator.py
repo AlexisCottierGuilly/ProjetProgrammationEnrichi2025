@@ -255,6 +255,7 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
 
     return current_best
 
+
 def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_point, all_points, is_end):
     print(current_perimeter)
     if current_point is None:
@@ -280,6 +281,7 @@ def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_p
 
     return True
 
+
 if __name__ == "__main__":
     auto_test = False
     while True:
@@ -287,7 +289,7 @@ if __name__ == "__main__":
         # seed = 1
         print(f"Seed: {seed}")
 
-        data = poly_gen.get_random_points(seed, 5, 5)
+        data = poly_gen.get_random_points(seed, 4, 4)
 
         optimal = poly.Polygon()
         optimal.convex_hull(data)
@@ -308,6 +310,9 @@ if __name__ == "__main__":
         actual_min_polygon = get_best_perimeter_polygon(data, update_bar, NUMBER_OF_THREADS)
         elapsed_time = time.time() - t
         actual_min_perimeter = actual_min_polygon.get_perimeter()
+
+        actual_min_polygon.update_patch_polygon()
+        actual_min_polygon.polygon_patch.set_linestyle(":")
 
         correct = round(actual_min_perimeter, 9) == round(perimeter, 9)
         color = Fore.GREEN if correct else Fore.RED
