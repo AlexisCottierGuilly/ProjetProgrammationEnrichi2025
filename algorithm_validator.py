@@ -7,7 +7,11 @@ import random
 import matplotlib.pyplot as plt
 from colorama import init, Fore
 
+from multiprocessing import Pool, Value, Lock, Manager
+from threading import Thread
+
 init(autoreset=True)
+NUMBER_OF_THREADS = 8
 
 
 def update_bar(current, total, best_perimeter):
@@ -153,7 +157,48 @@ def get_total_iterations(n):
     return total
 
 
-def get_best_perimeter_polygon(points, callback=None):
+def best_perimeter_task(combinations, points, counter, lock):
+    current_best = None
+    current_best_peri = -1
+    iterations = 0
+    added_iterations = 0
+
+    for combination in combinations:
+        for permutation in get_all_permutations(combination):
+            iterations += 1
+            p = poly.Polygon(permutation)
+
+            peri = p.get_perimeter()
+            if current_best is None or peri < current_best_peri:
+                if contains_all_blues_and_exclude_reds(p, points):
+                    current_best = p
+                    current_best_peri = peri
+
+            """if iterations % 1000 == 0:
+                with lock:
+                    counter.value += 1000
+                    added_iterations += 1000"""
+
+    """with lock:
+        counter.value += iterations - added_iterations"""
+
+    return {"best_peri": current_best_peri, "best_poly": current_best, "i": iterations}
+
+
+def separate_combinations(combinations, n):
+    blocks_steps = len(combinations) // n
+    blocks = []
+    for i in range(n):
+        start = i * blocks_steps
+        if i < n - 1:
+            blocks.append(combinations[start:start + blocks_steps])
+        else:
+            blocks.append(combinations[start:])
+
+    return blocks
+
+
+def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREADS):
     # Choose a random point path
     # For each point, take it or leave it, in a random order
     current_best = None
@@ -161,60 +206,91 @@ def get_best_perimeter_polygon(points, callback=None):
 
     theorical_max = get_total_iterations(len(points))
     i = 0
-    for k in range(3, len(points) + 1):
-        for combination in get_all_combinations(points, k):
-            for permutation in get_all_permutations(combination):
-                p = poly.Polygon(permutation)
 
-                i += 1
-                if i % 1000 == 0 and callback is not None:
-                    callback(i, theorical_max, current_best_peri)
+    #with Manager() as manager:
+    #counter = Value("i", 0)  #manager.Value('i', 0)
+    #lock = Lock()  #manager.Lock()
 
-                peri = p.get_perimeter()
-                if current_best is None or peri < current_best_peri:
-                    if contains_all_blues_and_exclude_reds(p, points):
-                        current_best = p
-                        current_best_peri = peri
+    with Pool(nb_threads) as pool:
+        """def progress_watcher():
+            # Update progress bar
+            while counter.value < theorical_max:
+                callback(counter.value, theorical_max, current_best_peri)
+                time.sleep(0.2)
+            callback(counter.value, theorical_max, current_best_peri)
 
-    callback(i, theorical_max, current_best_peri)
+        watcher = Thread(target=progress_watcher, daemon=True)
+        watcher.start()"""
+
+        for k in range(3, len(points) + 1):
+            all_combinations = get_all_combinations(points, k)
+            combinations_blocks = separate_combinations(all_combinations, nb_threads)
+            infos_blocks = [(combinations_blocks[i], points, None, None) for i in range(len(combinations_blocks))]
+
+            results = pool.starmap(best_perimeter_task, infos_blocks)
+            for result in results:
+                i += result["i"]
+                #print(f"Results: {result}")
+                if current_best is None or (result["best_peri"] != -1 and result["best_peri"] < current_best_peri):
+                    current_best_peri = result["best_peri"]
+                    current_best = result["best_poly"]
+
+            if current_best_peri is not None:
+                callback(i, theorical_max, current_best_peri)
+
+            """for combination in get_all_combinations(points, k):
+                for permutation in get_all_permutations(combination):
+                    p = poly.Polygon(permutation)
+    
+                    i += 1
+                    if i % 1000 == 0 and callback is not None:
+                        callback(i, theorical_max, current_best_peri)
+    
+                    peri = p.get_perimeter()
+                    if current_best is None or peri < current_best_peri:
+                        if contains_all_blues_and_exclude_reds(p, points):
+                            current_best = p
+                            current_best_peri = peri"""
+        #watcher.join()
 
     return current_best
 
 
-auto_test = True
-while True:
-    seed = random.randint(1, 1_000_000_000_000_000)
-    print(f"Seed: {seed}")
+if __name__ == "__main__":
+    auto_test = False
+    while True:
+        seed = random.randint(1, 1_000_000_000_000_000)
+        print(f"Seed: {seed}")
 
-    data = poly_gen.get_random_points(seed, 4, 4)
+        data = poly_gen.get_random_points(seed, 5, 5)
 
-    optimal = poly.Polygon()
-    optimal.convex_hull(data)
-    optimal.max_optimize(data)
+        optimal = poly.Polygon()
+        optimal.convex_hull(data)
+        optimal.max_optimize(data)
 
-    perimeter = optimal.get_perimeter()
-    print(f"Algorithm answer: {perimeter:.4f} u")
+        perimeter = optimal.get_perimeter()
+        print(f"Algorithm answer: {perimeter:.4f} u")
 
-    t = time.time()
-    actual_min_polygon = get_best_perimeter_polygon(data, update_bar)
-    elapsed_time = time.time() - t
+        t = time.time()
+        actual_min_polygon = get_best_perimeter_polygon(data, update_bar, NUMBER_OF_THREADS)
+        elapsed_time = time.time() - t
 
-    actual_min_perimeter = actual_min_polygon.get_perimeter()
+        actual_min_perimeter = actual_min_polygon.get_perimeter()
 
-    correct = round(actual_min_perimeter, 9) == round(perimeter, 9)
-    color = Fore.GREEN if correct else Fore.RED
-    print(color + f"\nActual answer: {actual_min_perimeter:.4f} u (in {elapsed_time:.3f} secs)" + Fore.BLACK)
+        correct = round(actual_min_perimeter, 9) == round(perimeter, 9)
+        color = Fore.GREEN if correct else Fore.RED
+        print(color + f"\nActual answer: {actual_min_perimeter:.4f} u (in {elapsed_time:.3f} secs)" + Fore.BLACK)
 
-    pts_optimal = sorted(optimal.points, key=lambda p: p.x)
-    pts_actual = sorted(actual_min_polygon.points, key=lambda p: p.x)
-    print(f"Same points? {pts_optimal == pts_actual}")
+        pts_optimal = sorted(optimal.points, key=lambda p: p.x)
+        pts_actual = sorted(actual_min_polygon.points, key=lambda p: p.x)
+        print(f"Same points? {pts_optimal == pts_actual}")
 
-    if not auto_test:
-        s = input()
-        if s == "s":
-            compare_graphs(optimal, actual_min_polygon, data)
-            input()
-    else:
-        print()
+        if not auto_test:
+            s = input()
+            if s == "s":
+                compare_graphs(optimal, actual_min_polygon, data)
+                input()
+        else:
+            print()
 
-# 813142566432053, 452551270535096, 445550995997911, 901016136321916, 333609186585783, 194595313759156, 339440507348159, 304227909683207
+    # 813142566432053, 452551270535096, 445550995997911, 901016136321916, 333609186585783, 194595313759156, 339440507348159, 304227909683207
