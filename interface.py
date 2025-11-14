@@ -55,6 +55,8 @@ class PolygonInterface:
         self.initialize_communication()
 
         self.buttons = []
+        self.point_textbox = None
+        self.currently_writing = False
         self.setup_buttons()
 
         self.num_blue, self.num_red = 25, 25
@@ -76,12 +78,100 @@ class PolygonInterface:
         step_button = Button(step_ax, "Step")
         step_button.on_clicked(lambda event: self.step())
         interface_utils.customize_button(step_button, mpl.rcParams)
+        self.buttons.append(step_button)  # buttons[0]
 
-        self.buttons.append(step_button)
+        add_point_ax = self.fig.add_axes([0.35, 0.05, 0.1, 0.075])
+        add_point_textbox = TextBox(add_point_ax, "Add point ")
+        add_point_textbox.on_text_change(lambda text: self.update_add_point(text, add_point_textbox))
+        add_point_textbox.currently_setting_value = False
+
+        def set_text(text, textbox):
+            textbox.currently_setting_value = True
+            textbox.set_val(text)
+            textbox.currently_setting_value = False
+
+        add_point_textbox.set_text = lambda text: set_text(text, add_point_textbox)
+        interface_utils.customize_button(add_point_textbox, mpl.rcParams)
+        self.point_textbox = add_point_textbox
+
+        add_point_validation_ax = self.fig.add_axes([0.46, 0.05, 0.05, 0.075])
+        add_point_validation_button = Button(add_point_validation_ax, "+")
+        add_point_validation_button.on_clicked(lambda event: self.add_point(add_point_textbox))
+        interface_utils.customize_button(add_point_validation_button, mpl.rcParams)
+        self.buttons.append(add_point_validation_button)  # buttons[1]
+
+    def update_add_point(self, string, textbox):
+        if textbox.currently_setting_value:
+            return
+
+        self.currently_writing = True
+
+        textbox.set_text("".join([char for char in textbox.text.upper() if char in "-0123456789(),.BR "]))
+
+        print(textbox.text)
+        if len(textbox.text) > 1 and "R" in textbox.text and textbox.text[0] != "R":
+            textbox.cursor_index -= 1
+            textbox.set_val("R" + textbox.text[1:].replace("R", ""))
+        if len(textbox.text) > 1 and "B" in textbox.text and textbox.text[0] != "B":
+            textbox.cursor_index -= 1
+            textbox.set_val("B" + textbox.text[1:].replace("B", ""))
+
+        if len(textbox.text) != 0:
+            first_char = textbox.text[0]
+            if first_char not in "RB":
+                start = "B"
+
+                textbox.cursor_index += 1
+                textbox.set_val(start + textbox.text)
+
+            if len(textbox.text) > 1 and textbox.text[1] != "(":
+                insertion = "("
+                textbox.cursor_index += 1
+                textbox.set_val(textbox.text[0] + insertion + textbox.text[1:])
+
+    def add_point(self, textbox):
+        """
+        The input format of the new point is for example:
+        B(5.2,4), or B(5,4.2
+        or R(-8,2)
+        """
+
+        self.currently_writing = False
+        string = textbox.text
+
+        try:
+            string = string.replace(")", "")
+            string = string.replace(" ", "")
+
+            point_state, rest = string.split("(")
+            state = poly.INCLUDED if point_state == "B" else poly.EXCLUDED
+            first_number, second_number = rest.split(",")
+            x = float(first_number)
+            y = float(second_number)
+
+            pt = poly.Point(x, y, state)
+
+            plot = self.blue_points_plot if state == poly.INCLUDED else self.red_points_plot
+            x = plot.get_xdata() + [pt.x]
+            y = plot.get_ydata() + [pt.y]
+            plot.set_data([x, y])
+
+            self.points.append(pt)
+
+            self.initialize_polygon()
+            self.update_graphics()
+
+        except ValueError:
+            print("Wrong point format")
 
     def mouse_press(self, event):
         # Left click
-        if event.button == 1:
+        if event.button == 1 or event.button == 3:
+            if event.inaxes is self.point_textbox.ax:
+                self.currently_writing = True
+            else:
+                self.currently_writing = False
+
             prop = 1/50
 
             x_min, x_max = self.ax.get_xlim()
@@ -103,6 +193,12 @@ class PolygonInterface:
                     if self.draggable_point_index == -1:
                         print("POINT PRESS ERROR")
 
+                    if event.button == 3:
+                        self.points.remove(self.draggable_point)
+                        self.update_points()
+                        self.draggable_point = None
+                        self.draggable_point_index = None
+
     def mouse_moved(self, event):
         if self.draggable_point is not None:
             new_pos = event.xdata, event.ydata
@@ -118,12 +214,31 @@ class PolygonInterface:
         self.initialize_polygon()
 
     def key_pressed(self, event):
+        if self.currently_writing:
+            if event.key == "enter":
+                self.add_point(self.point_textbox)
+            return
+
         if event.key == " ":
             self.step()
         elif event.key == "r":
             self.set_random_points()
             self.initialize_polygon()
             self.update_graphics()
+        elif event.key == "c":
+            self.remove_all_points()
+            self.initialize_polygon()
+            self.update_graphics()
+        elif event.key == "backspace":
+            if self.draggable_point is not None:
+                self.points.remove(self.draggable_point)
+                self.update_points()
+
+                self.draggable_point = None
+                self.draggable_point_index = None
+
+                self.initialize_polygon()
+                self.update_graphics()
         elif event.key == "1" or event.key == "2":
             if event.xdata and event.ydata:
                 pt = poly.Point(event.xdata, event.ydata)
@@ -144,6 +259,10 @@ class PolygonInterface:
 
                 self.initialize_polygon()
                 self.update_graphics()
+
+    def remove_all_points(self):
+        self.points = []
+        self.update_points()
 
     def set_random_points(self):
         self.points = poly_gen.get_random_points(self.seed, self.num_blue, self.num_red)
@@ -201,9 +320,14 @@ class PolygonInterface:
     def resize_limits(self):
         self.polygon.recalculate_bounds()
 
-        spacing_factor = 1.25
-        offset = self.polygon.bounds[0]
-        size = max(self.polygon.bounds[1]) / 2
+        if len(self.polygon.points) >= 3:
+            spacing_factor = 1.25
+            offset = self.polygon.bounds[0]
+            size = max(self.polygon.bounds[1]) / 2
+        else:
+            offset = [0, 0]
+            spacing_factor = 1
+            size = 10
 
         self.ax.set_xlim(
             -size * spacing_factor + offset[0],
