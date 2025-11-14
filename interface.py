@@ -44,7 +44,7 @@ class PolygonInterface:
         self.draggable_point_index = None
 
         self.auto_step = True
-        self.step_delay = 0.01
+        self.step_delay = 0 #0.01
 
         self.fig = plt.figure(facecolor="#101010")
         self.ax = self.fig.add_subplot(111, facecolor='#050505')
@@ -105,12 +105,11 @@ class PolygonInterface:
 
     def mouse_moved(self, event):
         if self.draggable_point is not None:
-            if event.button == 1:
-                new_pos = event.xdata, event.ydata
-                if new_pos[0] and new_pos[1]:
-                    plot = self.blue_points_plot if self.draggable_point.state == poly.INCLUDED else self.red_points_plot
-                    interface_utils.modify_point(new_pos, self.draggable_point, self.draggable_point_index, plot)
-                    plt.draw()
+            new_pos = event.xdata, event.ydata
+            if new_pos[0] and new_pos[1]:
+                plot = self.blue_points_plot if self.draggable_point.state == poly.INCLUDED else self.red_points_plot
+                interface_utils.modify_point(new_pos, self.draggable_point, self.draggable_point_index, plot)
+                self.initialize_polygon()
 
     def mouse_release(self, event):
         self.draggable_point = None
@@ -125,22 +124,35 @@ class PolygonInterface:
             self.set_random_points()
             self.initialize_polygon()
             self.update_graphics()
-        elif event.key == "1":
+        elif event.key == "1" or event.key == "2":
             if event.xdata and event.ydata:
                 pt = poly.Point(event.xdata, event.ydata)
-                pt.state = poly.INCLUDED
+                if event.key == "1":
+                    pt.state = poly.INCLUDED
+                    plot = self.blue_points_plot
+                else:
+                    pt.state = poly.EXCLUDED
+                    plot = self.red_points_plot
+
                 self.draggable_point = pt
-                self.draggable_point_index = len(self.blue_points_plot.get_xdata())
-                x = self.blue_points_plot.get_xdata() + [pt.x]
-                y = self.blue_points_plot.get_ydata() + [pt.y]
-                self.blue_points_plot.set_data([[x], [y]])
-                plt.draw()
+                self.draggable_point_index = len(plot.get_xdata())
+                x = plot.get_xdata() + [pt.x]
+                y = plot.get_ydata() + [pt.y]
+
+                plot.set_data([x, y])
+                self.points.append(pt)
+
+                self.initialize_polygon()
+                self.update_graphics()
 
     def set_random_points(self):
         self.points = poly_gen.get_random_points(self.seed, self.num_blue, self.num_red)
         self.update_points()
 
     def update_points(self):
+        self.draggable_point = None
+        self.draggable_point_index = None
+
         self.blue_points_plot.set_data([[], []])
         self.red_points_plot.set_data([[], []])
 
@@ -171,12 +183,13 @@ class PolygonInterface:
     def step(self):
         while True:
             modified = self.polygon.optimize(self.points, update_bounds=False, update_patch=False)
-            self.update_graphics()
 
             if not modified or not self.auto_step:
                 break
-            else:
+            elif self.step_delay > 0:
+                self.update_graphics()
                 plt.pause(self.step_delay)
+        self.update_graphics()
 
     def update_graphics(self):
         self.polygon.update_patch_polygon()
