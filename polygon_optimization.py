@@ -1,9 +1,10 @@
 import math
 import polygon as poly
 import polygon_utilities as poly_utils
+from constants import *
 
 
-def exclude_or_include_next(points, polygon):
+def exclude_or_include_next(points, polygon, constraint=MINIMIZE_PERIMETER):
     if not points:
         return
 
@@ -11,28 +12,38 @@ def exclude_or_include_next(points, polygon):
 
     left_pts = points.copy()
     while True:
-        longest_distance = 0
+        longest_distance = None
         selected_point = None
         selected_line_index = None
         for point in left_pts:
-            local_shortest = -1
+            local_shortest = None
             local_selected_line_i = None
             for i, line in enumerate(polygon.lines):
                 if [point, line] in pt_line_excluded:
                     continue
 
                 #dist = polygon.point_to_line_distance(point, line)
-                start_dist = line.get_length()
-                l1 = poly.Line(line.point1, point)
-                l2 = poly.Line(point, line.point2)
-                new_dist = l1.get_length() + l2.get_length()
-                dist = new_dist - start_dist
 
-                if local_shortest == -1 or local_shortest >= dist:
+                if constraint == MINIMIZE_PERIMETER:
+                    l1 = poly.Line(line.point1, point)
+                    l2 = poly.Line(point, line.point2)
+
+                    start_dist = line.get_length()
+                    new_dist = l1.get_length() + l2.get_length()
+                    dist = new_dist - start_dist
+                    dist = dist
+                else:
+                    # Form a triangle
+                    l1 = poly.Line(line.point2, point)
+                    l2 = poly.Line(point, line.point1)
+
+                    dist = -poly_utils.calculate_lines_area([line, l1, l2])
+
+                if local_shortest is None or local_shortest >= dist:
                     local_shortest = dist
                     local_selected_line_i = i
 
-            if longest_distance <= local_shortest:
+            if longest_distance is None or longest_distance <= local_shortest:
                 longest_distance = local_shortest
                 selected_point = point
                 selected_line_index = local_selected_line_i

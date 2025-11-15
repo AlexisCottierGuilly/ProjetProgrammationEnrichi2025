@@ -303,8 +303,8 @@ if __name__ == "__main__":
 
         t = time.time()
 
-        if is_min_perimeter(0, perimeter, [], None, data, False):
-            print("It is the minimum perimeter")
+        #if is_min_perimeter(0, perimeter, [], None, data, False):
+        #    print("It is the minimum perimeter")
 
         elapsed_time = time.time() - t
         print(elapsed_time)

@@ -7,6 +7,8 @@ import polygon_generator as poly_gen
 import polygon_optimization as poly_optim
 import interface_utilities as interface_utils
 
+from constants import *
+
 import random
 import time
 
@@ -35,7 +37,8 @@ mpl.rcParams.update({
 
 class PolygonInterface:
     def __init__(self, title="Polygon"):
-        self.seed = None
+        self.seed = 1
+        self.constraint = MINIMIZE_PERIMETER
 
         self.points = []
         self.polygon = None
@@ -64,6 +67,7 @@ class PolygonInterface:
 
         self.create_polygon()
         self.initialize_polygon()
+        self.update_title()
 
     def initialize_communication(self):
         self.fig.canvas.mpl_connect('key_press_event', self.key_pressed)
@@ -221,6 +225,13 @@ class PolygonInterface:
 
         if event.key == " ":
             self.step()
+        elif event.key == "c":
+            if self.constraint == MINIMIZE_PERIMETER:
+                self.constraint = MINIMIZE_AREA
+            else:
+                self.constraint = MINIMIZE_PERIMETER
+            self.initialize_polygon()
+            self.update_graphics()
         elif event.key == "r":
             self.set_random_points()
             self.initialize_polygon()
@@ -301,7 +312,7 @@ class PolygonInterface:
 
     def step(self):
         while True:
-            modified = self.polygon.optimize(self.points, update_bounds=False, update_patch=False)
+            modified = self.polygon.optimize(self.points, update_bounds=False, update_patch=False, constraint=self.constraint)
 
             if not modified or not self.auto_step:
                 break
@@ -310,8 +321,17 @@ class PolygonInterface:
                 plt.pause(self.step_delay)
         self.update_graphics()
 
+    def update_title(self):
+        peri = area = 0
+        if self.polygon is not None:
+            peri = self.polygon.get_perimeter()
+            area = self.polygon.get_area()
+        self.ax.set_title(f"Perimètre : {peri:.3f} u\nAire : {area:.3f} u^2")
+
     def update_graphics(self):
-        self.polygon.update_patch_polygon()
+        if self.polygon is not None:
+            self.polygon.update_patch_polygon()
+            self.update_title()
         plt.draw()
 
     def show(self):

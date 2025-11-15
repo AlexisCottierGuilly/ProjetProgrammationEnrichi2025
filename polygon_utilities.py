@@ -67,10 +67,14 @@ def point_in_polygon(point, polygon):
 
 
 def calculate_area(polygon):
+    return calculate_lines_area(polygon.lines)
+
+
+def calculate_lines_area(lines):
     # Shoelace Formula
 
     total_area = 0
-    for line in polygon.lines:
+    for line in lines:
         x1, y1 = line.point1.x, line.point1.y
         x2, y2 = line.point2.x, line.point2.y
         total_area += x1 * y2 - x2 * y1

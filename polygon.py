@@ -6,6 +6,8 @@ import polygon_utilities as poly_utls
 import polygon_generator as poly_gen
 import polygon_optimization as poly_optim
 
+from constants import *
+
 INCLUDED = 0
 EXCLUDED = 1
 IGNORE = 2
@@ -52,9 +54,9 @@ class Polygon:
     def convex_hull(self, points):
         self.set_points(poly_optim.convex_hull(points).points)
 
-    def max_optimize(self, points, update_patch=True, update_bounds=True):
+    def max_optimize(self, points, update_patch=True, update_bounds=True, constraint=MINIMIZE_PERIMETER):
         while True:
-            did_change = self.optimize(points, update_patch=False, update_bounds=False)
+            did_change = self.optimize(points, update_patch=False, update_bounds=False, constraint=constraint)
             if not did_change:
                 break
 
@@ -63,7 +65,7 @@ class Polygon:
         if update_patch:
             self.update_patch_polygon()
 
-    def optimize(self, points, update_patch=True, update_bounds=True):
+    def optimize(self, points, update_patch=True, update_bounds=True, constraint=MINIMIZE_PERIMETER):
         did_change = False
         included_excluded = poly_utls.get_included_excluded(points, self)
         excluded_included = poly_utls.get_excluded_included(points, self)
@@ -71,7 +73,7 @@ class Polygon:
         problematic_points = included_excluded + excluded_included
 
         if problematic_points:
-            poly_optim.exclude_or_include_next(problematic_points, self)
+            poly_optim.exclude_or_include_next(problematic_points, self, constraint=constraint)
             did_change = True
 
         if update_bounds:
