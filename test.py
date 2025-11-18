@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import polygon as poly
+from constants import *
 import polygon_optimization as poly_optim
 import random
 import time
@@ -94,7 +95,7 @@ def regenerate():
     i = 0
     while True:
         t = time.time()
-        did_change = polygon.optimize(pts, update_bounds=False, update_patch=False)
+        did_change = polygon.optimize(pts, update_bounds=False, update_patch=False, constraint=constraint)
         optim_time += time.time() - t
 
         if not did_change:
@@ -103,13 +104,13 @@ def regenerate():
             polygon.recalculate_bounds()
             polygon.update_patch_polygon()
             plt.draw()
-            plt.pause(0.005)
+            plt.pause(0.5)
         i += 1
 
     polygon.recalculate_bounds()
     polygon.update_patch_polygon()
 
-    print(f"Seed: {seed}, Perimeter: {polygon.get_perimeter():.5f}, In {optim_time:.5f} secs")
+    print(f"Seed: {seed} | Perimeter: {polygon.get_perimeter():.5f} | Area: {polygon.get_area():.5f} u^2 (in {optim_time:.5f} secs)")
 
     plt.draw()
 
@@ -134,6 +135,7 @@ fig = plt.figure(facecolor="#101010")
 ax = fig.add_subplot(111, facecolor='#050505')
 
 polygon = poly.Polygon()
+constraint = MINIMIZE_AREA
 pts = []
 
 point, = ax.plot([], [], 'x', color='blue')

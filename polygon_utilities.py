@@ -2,6 +2,7 @@ import math
 import numpy as np
 import polygon as poly
 import polygon_optimization as poly_optim
+from constants import *
 
 
 def calculate_bounds(polygon):
@@ -125,14 +126,17 @@ def get_included_excluded(points, polygon):
     return included_excluded_points
 
 
-def get_excluded_included(points, polygon):
+def get_excluded_included(points, polygon, constraint=MINIMIZE_PERIMETER):
     # Returns a list of all included points that are still outside the polygon
     excluded_included_points = []
 
     for point in points:
         if point.state == poly.INCLUDED and point not in polygon.points:
-            outside = not polygon.point_in_polygon(point)
-            if outside:
+            if constraint == MINIMIZE_PERIMETER:
+                outside = not polygon.point_in_polygon(point)
+                if outside:
+                    excluded_included_points.append(point)
+            else:
                 excluded_included_points.append(point)
 
     return excluded_included_points

@@ -68,7 +68,7 @@ class Polygon:
     def optimize(self, points, update_patch=True, update_bounds=True, constraint=MINIMIZE_PERIMETER):
         did_change = False
         included_excluded = poly_utls.get_included_excluded(points, self)
-        excluded_included = poly_utls.get_excluded_included(points, self)
+        excluded_included = poly_utls.get_excluded_included(points, self, constraint)
 
         problematic_points = included_excluded + excluded_included
 

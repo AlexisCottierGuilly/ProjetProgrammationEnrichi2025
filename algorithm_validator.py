@@ -1,5 +1,8 @@
 import polygon as poly
 import polygon_generator as poly_gen
+import polygon_utilities as poly_utls
+from constants import *
+
 import time
 import sys
 import math
@@ -25,32 +28,10 @@ def update_bar(current, total, best_perimeter):
 def compare_graphs(p1, p2, points):
     def on_key_press(pressed_key, polygon):
         if pressed_key.key == 'h':
-            if polygon.polygon_patch.get_edgecolor()[-1] != 0:
-                polygon.polygon_patch.set_edgecolor((
-                    polygon.polygon_patch.get_edgecolor()[0],
-                    polygon.polygon_patch.get_edgecolor()[1],
-                    polygon.polygon_patch.get_edgecolor()[2],
-                    0
-                ))
-                polygon.polygon_patch.set_facecolor((
-                    polygon.polygon_patch.get_facecolor()[0],
-                    polygon.polygon_patch.get_facecolor()[1],
-                    polygon.polygon_patch.get_facecolor()[2],
-                    0
-                ))
+            if polygon.polygon_patch.get_alpha() == 0:
+                polygon.polygon_patch.set_alpha(0.5)
             else:
-                polygon.polygon_patch.set_edgecolor((
-                    polygon.polygon_patch.get_edgecolor()[0],
-                    polygon.polygon_patch.get_edgecolor()[1],
-                    polygon.polygon_patch.get_edgecolor()[2],
-                    0.5
-                ))
-                polygon.polygon_patch.set_facecolor((
-                    polygon.polygon_patch.get_facecolor()[0],
-                    polygon.polygon_patch.get_facecolor()[1],
-                    polygon.polygon_patch.get_facecolor()[2],
-                    1
-                ))
+                polygon.polygon_patch.set_alpha(0)
             plt.draw()
 
 
@@ -256,6 +237,77 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
     return current_best
 
 
+def get_min_perimeter_include_exclude(points, calculated_min=None, constraint=MINIMIZE_PERIMETER):
+    """
+    Test all polygons created by generating all include/exclude step orders
+
+    :param points: The set of blue and red points
+    :param calculated_min: The perimeter calculated by the actual algorithm
+    :return: (polygon with the smallest perimeter, perimeter)
+    """
+
+    min_peri = None
+    min_peri_poly = None
+
+    hull = poly.Polygon()
+    hull.convex_hull(points)
+    hull.update_lines()
+
+    current_search = [hull]
+    i = 0
+    while current_search:
+        next_search = []
+        for search in current_search:
+            problematic_reds = poly_utls.get_included_excluded(points, search)
+            problematic_blues = poly_utls.get_excluded_included(points, search, constraint)
+            problematic_pts = problematic_reds + problematic_blues
+
+            if len(problematic_pts) == 0:
+                peri = search.get_perimeter() if constraint == MINIMIZE_PERIMETER else search.get_area()
+                if min_peri is None or peri < min_peri:
+                    min_peri = peri
+                    min_peri_poly = search
+                continue
+
+            for pt in problematic_pts:
+                for j in range(len(search.lines)):
+                    new_poly = poly.Polygon(search.points.copy(), search.lines.copy(), create_patch=None, update_bounds=False)
+                    # Insert the point pt at the position of the line
+                    ln = search.lines[j]
+                    l1 = poly.Line(ln.point1, pt)
+                    l2 = poly.Line(pt, ln.point2)
+
+                    del new_poly.lines[j]
+                    new_poly.lines.insert(j, l2)
+                    new_poly.lines.insert(j, l1)
+                    idx = new_poly.points.index(ln.point2)
+                    new_poly.points.insert(idx, pt)
+
+                    next_search.append(new_poly)
+                    if calculated_min is not None and constraint == MINIMIZE_PERIMETER:
+                        peri = new_poly.get_perimeter()
+                        # print(f"Peri: {peri} | Calculated: {calculated_min}")
+                        if peri > calculated_min:
+                            del next_search[-1]
+                            continue
+
+                    intersects = poly_utls.multiple_intersects_with_polygon([l1, l2], new_poly)
+                    if intersects:
+                        del next_search[-1]
+
+        current_search = next_search
+
+        if i % 1 == 0:
+            print(f"Iteration {i + 1} | Current min: {min_peri} u")
+
+        i += 1
+        if i > 100000:
+            print("Too many iterations (100000)")
+            break
+
+    return min_peri, min_peri_poly
+
+
 # def is_min_perimeter(current_perimeter, min_perimeter, points_in_line, current_point, all_points, is_end):
 #     print(current_perimeter)
 #     if current_point is None:
@@ -287,19 +339,29 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
 
 if __name__ == "__main__":
     auto_test = False
+    next_seed = None
     while True:
-        seed = random.randint(1, 1_000_000_000_000_000)
-        # seed = 1
-        print(f"Seed: {seed}")
+        # 159634519162366 (10x2 pts), 696232785600372 (4x2), très stylé, pour l'aire: 18658181112621 (8x2)
+        if next_seed is None:
+            seed = random.randint(1, 1_000_000_000_000_000)
+        else:
+            seed = next_seed
 
-        data = poly_gen.get_random_points(seed, 4, 4)
+        next_seed = None
+        constraint = MINIMIZE_AREA
+        # seed = 1
+        print(f"Seed: {seed} | Constraint: '{'perimeter' if constraint == MINIMIZE_PERIMETER else 'area'}'")
+
+        data = poly_gen.get_random_points(seed, 7, 7)
 
         optimal = poly.Polygon()
+        t = time.time()
         optimal.convex_hull(data)
-        optimal.max_optimize(data)
+        optimal.max_optimize(data, constraint=constraint)
+        elapsed_time = time.time() - t
 
-        perimeter = optimal.get_perimeter()
-        print(f"Algorithm answer: {perimeter:.4f} u")
+        perimeter = optimal.get_perimeter() if constraint == MINIMIZE_PERIMETER else optimal.get_area()
+        print(f"Algorithm answer: {perimeter:.4f} u (in {elapsed_time:.4f} s)")
 
         t = time.time()
 
@@ -307,29 +369,41 @@ if __name__ == "__main__":
         #    print("It is the minimum perimeter")
 
         elapsed_time = time.time() - t
-        print(elapsed_time)
+        #print(elapsed_time)
 
         t = time.time()
-        actual_min_polygon = get_best_perimeter_polygon(data, update_bar, NUMBER_OF_THREADS)
+        #actual_min_polygon = get_best_perimeter_polygon(data, update_bar, NUMBER_OF_THREADS)
+        actual_min_perimeter, actual_min_polygon = get_min_perimeter_include_exclude(data, perimeter, constraint)
         elapsed_time = time.time() - t
-        actual_min_perimeter = actual_min_polygon.get_perimeter()
+
+        if actual_min_polygon is None:
+            print("Error...")
 
         actual_min_polygon.update_patch_polygon()
-        actual_min_polygon.polygon_patch.set_linestyle(":")
+        actual_min_polygon.polygon_patch.set_alpha(0.5)
+        actual_min_polygon.polygon_patch.set_linestyle("--")
+        # actual_min_polygon.polygon_patch.set_fill(False)
 
         correct = round(actual_min_perimeter, 9) == round(perimeter, 9)
         color = Fore.GREEN if correct else Fore.RED
-        print(color + f"\nActual answer: {actual_min_perimeter:.4f} u (in {elapsed_time:.3f} secs)" + Fore.BLACK)
+        print(color + f"\nActual answer: {actual_min_perimeter:.4f} u (in {elapsed_time:.4f} secs)" + Fore.BLACK)
 
         pts_optimal = sorted(optimal.points, key=lambda p: p.x)
         pts_actual = sorted(actual_min_polygon.points, key=lambda p: p.x)
         print(f"Same points? {pts_optimal == pts_actual}")
 
         if not auto_test:
-            s = input()
-            if s == "s":
-                compare_graphs(optimal, actual_min_polygon, data)
-                input()
+            can_quit = False
+            did_show_graph = False
+            while not can_quit:
+                s = input()
+                if s == "s" and not did_show_graph:
+                    compare_graphs(optimal, actual_min_polygon, data)
+                    did_show_graph = True
+                    continue
+                elif s.isnumeric():
+                    next_seed = int(s)
+                can_quit = True
         else:
             print()
 

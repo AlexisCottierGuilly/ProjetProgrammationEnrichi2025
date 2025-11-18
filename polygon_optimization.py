@@ -23,7 +23,6 @@ def exclude_or_include_next(points, polygon, constraint=MINIMIZE_PERIMETER):
                     continue
 
                 #dist = polygon.point_to_line_distance(point, line)
-
                 if constraint == MINIMIZE_PERIMETER:
                     l1 = poly.Line(line.point1, point)
                     l2 = poly.Line(point, line.point2)
@@ -37,7 +36,8 @@ def exclude_or_include_next(points, polygon, constraint=MINIMIZE_PERIMETER):
                     l1 = poly.Line(line.point2, point)
                     l2 = poly.Line(point, line.point1)
 
-                    dist = -poly_utils.calculate_lines_area([line, l1, l2])
+                    dist = poly_utils.calculate_lines_area([line, l1, l2])
+                    dist *= -1  # Find the biggest area
 
                 if local_shortest is None or local_shortest >= dist:
                     local_shortest = dist
@@ -82,7 +82,7 @@ def convex_hull(points):
 
     included_points = [pt for pt in points if pt.state == poly.INCLUDED]
     if not included_points:
-        return poly.Polygon()
+        return poly.Polygon(create_patch=False, update_bounds=False)
 
     # Start with the point the most on the left
     start_point = min(included_points, key=lambda pt: pt.x)
@@ -109,7 +109,7 @@ def convex_hull(points):
         polygon_points.append(next_point)
         current_point = next_point
 
-    return poly.Polygon(polygon_points)
+    return poly.Polygon(polygon_points, create_patch=False, update_bounds=False)
 
 
 def cross(current_pt, next_pt, pt):
