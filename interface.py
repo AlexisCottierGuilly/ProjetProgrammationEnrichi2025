@@ -68,10 +68,14 @@ class PolygonInterface:
 
         self.buttons = []
         self.textboxes = []
-        self.point_textbox = None
+
+        self.reset_mode_callbacks = []
+        self.seed_callbacks = []
+        self.constraint_callbacks = []
+
         self.setup_buttons()
 
-        self.num_blue, self.num_red = 5, 5
+        self.num_blue, self.num_red = 10, 10
         self.set_random_points()
 
         self.create_polygon()
@@ -90,19 +94,27 @@ class PolygonInterface:
         vert_spacing = 0.15
         box_height = 0.075
 
+        # RIGHT SIDE
         bar_width = 0.2
         x_center = 0.85
         x_start = x_center - bar_width / 2
         y_step = 0.2
 
-        step_ax = self.fig.add_axes([x_start, y_step, bar_width, box_height])  #[0.7, 0.05, 0.1, 0.075])
+        reset_ax = self.fig.add_axes([x_start, y_step, bar_width, box_height])  # [0.7, 0.05, 0.1, 0.075])
+        reset_button = Button(reset_ax, "Reload Polygon")
+        reset_button.on_clicked(lambda event: self.reset())
+        interface_utils.customize_button(reset_button, mpl.rcParams)
+        self.buttons.append(reset_button)
+
+        step_y = y_step + vert_spacing / 1.25
+        step_ax = self.fig.add_axes([x_start, step_y, bar_width, box_height])  #[0.7, 0.05, 0.1, 0.075])
         step_button = Button(step_ax, "Step")
-        step_button.on_clicked(lambda event: self.step())
+        step_button.on_clicked(lambda event: (self.step()))
         interface_utils.customize_button(step_button, mpl.rcParams)
         self.buttons.append(step_button)
 
         # Add point textbox
-        add_point_y = y_step + vert_spacing
+        add_point_y = step_y + vert_spacing / 1.25
         textbox_width = bar_width / 1.75
         add_point_ax = self.fig.add_axes([x_start, add_point_y, textbox_width, box_height])
         add_point_textbox = interface_utils.InterfaceTextBox(add_point_ax, "")
@@ -123,8 +135,8 @@ class PolygonInterface:
         interface_utils.customize_button(add_point_validation_button, mpl.rcParams)
         self.buttons.append(add_point_validation_button)
 
-        self.fig.text(x_start + textbox_width / 2, 0.45, "Point", ha="center", va="center")
-        self.fig.text(x_start + textbox_width + space + add_width / 2, 0.45, "Add", ha="center", va="center")
+        self.fig.text(x_start + textbox_width / 2, add_point_y + 0.1, "Point", ha="center", va="center")
+        self.fig.text(x_start + textbox_width + space + add_width / 2, add_point_y + 0.1, "Add", ha="center", va="center")
 
         # Load file
         load_y = add_point_y + vert_spacing
@@ -172,11 +184,17 @@ class PolygonInterface:
 
         self.fig.text(x_start + textbox_width / 2, save_y + 0.1, "Save location", ha="center", va="center")
 
-        modes_y = save_y + vert_spacing
+        # LEFT SIDE
+        x_center = 0.15
+        x_start = x_center - bar_width / 2
+        modes_y = y_step
 
         gen_mode_width = bar_width / 2.2
         gen_mode_ax = self.fig.add_axes([x_start, modes_y, gen_mode_width, box_height])  # [0.7, 0.05, 0.1, 0.075])
-        gen_mode_button = Button(gen_mode_ax, "RANDOM" if self.reset_mode == RESET_RANDOM else "DATASET")
+        gen_mode_button = Button(gen_mode_ax, self.get_reset_mode_string())
+        self.reset_mode_callbacks.append(
+            lambda new_mode: gen_mode_button.label.set_text(self.get_reset_mode_string())
+        )
         gen_mode_button.on_clicked(lambda event: self.gen_mode_clicked(gen_mode_button))
         interface_utils.customize_button(gen_mode_button, mpl.rcParams)
         self.buttons.append(gen_mode_button)
@@ -187,34 +205,98 @@ class PolygonInterface:
         s = x_start + gen_mode_width + space
 
         constraint_mode_ax = self.fig.add_axes([s, modes_y, constraint_mode_width, box_height])  # [0.7, 0.05, 0.1, 0.075])
-        constraint_mode_button = Button(constraint_mode_ax, "PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA")
+        constraint_mode_button = Button(constraint_mode_ax, self.get_constraint_string())
+        self.constraint_callbacks.append(
+            lambda new_constraint: constraint_mode_button.label.set_text(self.get_constraint_string())
+        )
         constraint_mode_button.on_clicked(lambda event: self.constraint_mode_clicked(constraint_mode_button))
         interface_utils.customize_button(constraint_mode_button, mpl.rcParams)
         self.buttons.append(constraint_mode_button)
         self.fig.text(
             x_start + gen_mode_width + space + constraint_mode_width / 2, modes_y + 0.1,
-            "Constraint Mode", ha="center", va="center"
+            "Constraint", ha="center", va="center"
         )
+
+        # Save file
+        seed_y = modes_y + vert_spacing
+        seed_ax = self.fig.add_axes([x_start, seed_y, bar_width, box_height])
+        seed_textbox = interface_utils.InterfaceTextBox(seed_ax, "")
+        seed_textbox.on_text_change(lambda text: self.update_seed_text(seed_textbox))
+        seed_textbox.submit_function = lambda: self.on_seed_submit(seed_textbox)
+        self.seed_callbacks.append(
+            lambda new_seed: seed_textbox.set_text(str(new_seed))
+        )
+        interface_utils.customize_button(seed_textbox, mpl.rcParams)
+        self.textboxes.append(seed_textbox)
+
+        self.fig.text(x_start + bar_width / 2, seed_y + 0.1, "Seed", ha="center", va="center")
+
+    def set_constraint(self, constraint):
+        self.constraint = constraint
+        for callback in self.constraint_callbacks:
+            callback(constraint)
+
+    def set_reset_mode(self, reset_mode):
+        self.reset_mode = reset_mode
+        for callback in self.reset_mode_callbacks:
+            callback(reset_mode)
+
+    def set_seed(self, seed):
+        self.seed = seed or 0
+        for callback in self.seed_callbacks:
+            callback(seed)
+
+    def show_notification(self, text):
+        notification = self.fig.text(0.5, 0.1, text,
+                       ha="center", va="center", color="grey")
+
+        timer = self.fig.canvas.new_timer(interval=3000)
+        timer.add_callback(lambda: (notification.remove() if notification in self.fig.texts else None , self.fig.canvas.draw_idle()))
+        timer.start()
+
+    def get_constraint_string(self):
+        return "PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA"
+
+    def get_reset_mode_string(self):
+        return "RANDOM" if self.reset_mode == RESET_RANDOM else "DATASET"
 
     def constraint_mode_clicked(self, button):
         self.switch_constraint_mode()
-        button.label.set_text("PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA")
+        button.label.set_text(self.get_constraint_string())
         self.initialize_polygon()
         self.update_graphics()
 
     def switch_constraint_mode(self):
-        self.constraint = MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_AREA
+        self.set_constraint(MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_AREA)
 
     def gen_mode_clicked(self, button):
         self.switch_generation_mode()
-        button.label.set_text("RANDOM" if self.reset_mode == RESET_RANDOM else "DATASET")
+        button.label.set_text(self.get_reset_mode_string())
         self.reset()
 
     def switch_generation_mode(self):
-        self.reset_mode = RESET_RANDOM if self.reset_mode == RESET_DATASET else RESET_DATASET
+        self.set_reset_mode(RESET_RANDOM if self.reset_mode == RESET_DATASET else RESET_DATASET)
 
     def dataset_exists(self, path):
         return os.path.exists(path) and os.path.isfile(path)
+
+    def update_seed_text(self, textbox):
+        if textbox.setting_text:
+            return
+
+        accepted_characters = "-0123456789"
+        accepted_string = "".join([char for char in textbox.text if char in accepted_characters])
+        textbox.set_text(accepted_string)
+
+    def on_seed_submit(self, textbox):
+        seed_text = textbox.text
+        if seed_text == "":
+            self.random_seed = True
+        else:
+            self.set_reset_mode(RESET_RANDOM)
+            self.random_seed = False
+            self.seed = int(seed_text)
+            self.reset()
 
     def update_load_text(self, textbox):
         if textbox.setting_text:
@@ -240,10 +322,12 @@ class PolygonInterface:
             self.load_dataset(path)
             self.current_dataset = path
 
+            self.set_reset_mode(RESET_DATASET)
             self.update_title()
             self.initialize_polygon()
             self.update_graphics()
             print(f"Dataset '{path}' loaded.")
+            self.show_notification(f"Loaded dataset '{path}'.")
         else:
             print(f"Invalid dataset '{path}'.")
 
@@ -255,12 +339,22 @@ class PolygonInterface:
         accepted_string = "".join([char for char in textbox.text if char in accepted_characters])
         textbox.set_text(accepted_string)
 
+        if self.dataset_exists(f"saves/{textbox.text}.txt"):
+            textbox.update_color("orange")
+        elif textbox.text != "":
+            textbox.update_color("green")
+        else:
+            textbox.update_color("white")
+
+        plt.draw()
+
     def on_save_submit(self, textbox):
         textbox.currently_editing = False
         txt = textbox.text
         if txt != "":
             path = f"saves/{textbox.text}.txt"
             self.save_points(path)
+            self.show_notification(f"Saved dataset as '{path}'.")
             print(f"Dataset '{path}' saved.")
         else:
             print(f"Invalid dataset save path.")
@@ -387,10 +481,11 @@ class PolygonInterface:
         if self.auto_save and self.draggable_point is not None:
             self.save_points(self.save_file)
 
+        if self.draggable_point is not None:
+            self.initialize_polygon()
+
         self.draggable_point = None
         self.draggable_point_index = None
-
-        self.initialize_polygon()
 
     def key_pressed(self, event):
         editing = False
@@ -403,20 +498,17 @@ class PolygonInterface:
         if editing:
             return
 
-        if event.key == " ":
+        if event.key == " " and not self.auto_step:
             self.step()
         elif event.key == "c":
-            if self.constraint == MINIMIZE_PERIMETER:
-                self.constraint = MINIMIZE_AREA
-            else:
-                self.constraint = MINIMIZE_PERIMETER
+            self.set_constraint(MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_PERIMETER)
             self.initialize_polygon()
             self.update_graphics()
         elif event.key == "h":
             if self.polygon is not None:
                 self.polygon.polygon_patch.set_visible(not self.polygon.polygon_patch.get_visible())
                 plt.draw()
-        elif event.key == "r":
+        elif event.key == "r" or (event.key == " " and self.auto_step):
             self.reset()
         elif event.key == "m":
             self.save_points(self.save_file)
@@ -466,7 +558,7 @@ class PolygonInterface:
 
     def set_random_points(self):
         if self.random_seed:
-            self.seed = random.randint(1, 1_000_000_000_000_000)
+            self.set_seed(random.randint(1, 1_000_000_000_000_000))
         self.points = poly_gen.get_random_points(self.seed, self.num_blue, self.num_red)
         self.update_points()
 
@@ -578,7 +670,7 @@ interface = PolygonInterface()
 
 interface.current_dataset = "saves/dataset.txt"
 interface.load_dataset(interface.current_dataset)
-interface.reset_mode = RESET_DATASET
+interface.set_reset_mode(RESET_DATASET)
 interface.initialize_polygon()
 interface.update_graphics()
 
