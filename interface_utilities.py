@@ -1,5 +1,25 @@
 import math
 import polygon as poly
+from matplotlib.widgets import Button, TextBox
+
+
+class InterfaceTextBox(TextBox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.currently_editing = False
+        self.setting_text = False
+
+        self.submit_function = lambda: None
+
+    def set_text(self, text):
+        # Avoid getting an infinite loop of set_val
+        self.setting_text = True
+        self.set_val(text)
+        self.setting_text = False
+
+    def update_color(self, color):
+        for side in ["bottom", "top", "left", "right"]:
+            self.ax.spines[side].set_edgecolor(color)
 
 
 def customize_button(button, rc_params):

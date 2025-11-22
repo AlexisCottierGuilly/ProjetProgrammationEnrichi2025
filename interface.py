@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
+import os
 
 import polygon as poly
 import polygon_generator as poly_gen
@@ -14,12 +15,12 @@ import time
 
 """
 Functionalities
- - Place points (1, 2 = blue, red)
- - Create polygon (space)
+ - Place points (1, 2 = blue, red) ✅
+ - Create polygon (space) ✅
  - Set seed (input field)
- - Set points (input field)
- - Step by step (next)
- - Random points (with r)
+ - Set points (input field) ✅
+ - Step by step (next) ✅
+ - Random points mode (with r)
  - Move points
 """
 
@@ -37,7 +38,9 @@ mpl.rcParams.update({
 
 class PolygonInterface:
     def __init__(self, title="Polygon"):
-        self.seed = 1
+        self.random_seed = True
+
+        self.seed = 0
         self.constraint = MINIMIZE_PERIMETER
 
         self.points = []
@@ -45,14 +48,14 @@ class PolygonInterface:
 
         self.reset_mode = RESET_RANDOM
         self.current_dataset = None
-        self.save_file = "dataset_1.txt"
-        self.auto_save = True
+        self.save_file = "saves/dataset_1.txt"
+        self.auto_save = False
 
         self.draggable_point = None
         self.draggable_point_index = None
 
         self.auto_step = True
-        self.step_delay = 0 #0.01
+        self.step_delay = 0  #0.01
 
         self.fig = plt.figure(facecolor="#101010")
         self.fig.set_size_inches(10, 6, forward=True)
@@ -64,8 +67,8 @@ class PolygonInterface:
         self.initialize_communication()
 
         self.buttons = []
+        self.textboxes = []
         self.point_textbox = None
-        self.currently_writing = False
         self.setup_buttons()
 
         self.num_blue, self.num_red = 5, 5
@@ -84,53 +87,189 @@ class PolygonInterface:
     def setup_buttons(self):
         self.fig.subplots_adjust(bottom=0.2)
 
+        vert_spacing = 0.15
+        box_height = 0.075
+
         bar_width = 0.2
         x_center = 0.85
         x_start = x_center - bar_width / 2
+        y_step = 0.2
 
-        step_ax = self.fig.add_axes([x_start, 0.2, bar_width, 0.075])  #[0.7, 0.05, 0.1, 0.075])
+        step_ax = self.fig.add_axes([x_start, y_step, bar_width, box_height])  #[0.7, 0.05, 0.1, 0.075])
         step_button = Button(step_ax, "Step")
         step_button.on_clicked(lambda event: self.step())
         interface_utils.customize_button(step_button, mpl.rcParams)
-        self.buttons.append(step_button)  # buttons[0]
+        self.buttons.append(step_button)
 
+        # Add point textbox
+        add_point_y = y_step + vert_spacing
         textbox_width = bar_width / 1.75
-        add_point_ax = self.fig.add_axes([x_start, 0.35, textbox_width, 0.075])
-        add_point_textbox = TextBox(add_point_ax, "")
-        add_point_textbox.on_text_change(lambda text: self.update_add_point(text, add_point_textbox))
-        add_point_textbox.currently_setting_value = False
-
-        def set_text(text, textbox):
-            textbox.currently_setting_value = True
-            textbox.set_val(text)
-            textbox.currently_setting_value = False
-
-        def update_color(color, textbox):
-            for side in ["bottom", "top", "left", "right"]:
-                textbox.ax.spines[side].set_edgecolor(color)
-
-        add_point_textbox.set_text = lambda text: set_text(text, add_point_textbox)
-        add_point_textbox.update_color = lambda c: update_color(c, add_point_textbox)
+        add_point_ax = self.fig.add_axes([x_start, add_point_y, textbox_width, box_height])
+        add_point_textbox = interface_utils.InterfaceTextBox(add_point_ax, "")
+        add_point_textbox.on_text_change(lambda text: self.update_add_point(add_point_textbox))
+        add_point_textbox.submit_function = lambda: self.add_point(add_point_textbox)
         interface_utils.customize_button(add_point_textbox, mpl.rcParams)
         self.point_textbox = add_point_textbox
+        self.textboxes.append(add_point_textbox)
 
         add_width = bar_width / 3
         space = bar_width - add_width - textbox_width
         s = x_start + textbox_width + space
-        add_point_validation_ax = self.fig.add_axes([s, 0.35, add_width, 0.075])
+
+        # Add point + icon
+        add_point_validation_ax = self.fig.add_axes([s, add_point_y, add_width, box_height])
         add_point_validation_button = Button(add_point_validation_ax, "+")
         add_point_validation_button.on_clicked(lambda event: self.add_point(add_point_textbox))
         interface_utils.customize_button(add_point_validation_button, mpl.rcParams)
-        self.buttons.append(add_point_validation_button)  # buttons[1]
+        self.buttons.append(add_point_validation_button)
 
         self.fig.text(x_start + textbox_width / 2, 0.45, "Point", ha="center", va="center")
         self.fig.text(x_start + textbox_width + space + add_width / 2, 0.45, "Add", ha="center", va="center")
 
-    def update_add_point(self, string, textbox):
-        if textbox.currently_setting_value:
+        # Load file
+        load_y = add_point_y + vert_spacing
+        textbox_width = bar_width / 1.75
+        load_ax = self.fig.add_axes([x_start, load_y, textbox_width, box_height])
+        load_textbox = interface_utils.InterfaceTextBox(load_ax, "")
+        load_textbox.on_text_change(lambda text: self.update_load_text(load_textbox))
+        load_textbox.submit_function = lambda: self.on_load_submit(load_textbox)
+        interface_utils.customize_button(load_textbox, mpl.rcParams)
+        self.textboxes.append(load_textbox)
+
+        add_width = bar_width / 3
+        space = bar_width - add_width - textbox_width
+        s = x_start + textbox_width + space
+
+        # Add point + icon
+        load_validation_ax = self.fig.add_axes([s, load_y, add_width, box_height])
+        load_validation_button = Button(load_validation_ax, "LOAD")
+        load_validation_button.on_clicked(lambda event: load_textbox.submit_function())
+        interface_utils.customize_button(load_validation_button, mpl.rcParams)
+        self.buttons.append(load_validation_button)
+
+        self.fig.text(x_start + textbox_width / 2, load_y + 0.1, "Load location", ha="center", va="center")
+
+        # Save file
+        save_y = load_y + vert_spacing
+        textbox_width = bar_width / 1.75
+        save_ax = self.fig.add_axes([x_start, save_y, textbox_width, box_height])
+        save_textbox = interface_utils.InterfaceTextBox(save_ax, "")
+        save_textbox.on_text_change(lambda text: self.update_save_text(save_textbox))
+        save_textbox.submit_function = lambda: self.on_save_submit(save_textbox)
+        interface_utils.customize_button(save_textbox, mpl.rcParams)
+        self.textboxes.append(save_textbox)
+
+        add_width = bar_width / 3
+        space = bar_width - add_width - textbox_width
+        s = x_start + textbox_width + space
+
+        # Add point + icon
+        save_validation_ax = self.fig.add_axes([s, save_y, add_width, box_height])
+        save_validation_button = Button(save_validation_ax, "SAVE")
+        save_validation_button.on_clicked(lambda event: save_textbox.submit_function())
+        interface_utils.customize_button(save_validation_button, mpl.rcParams)
+        self.buttons.append(save_validation_button)
+
+        self.fig.text(x_start + textbox_width / 2, save_y + 0.1, "Save location", ha="center", va="center")
+
+        modes_y = save_y + vert_spacing
+
+        gen_mode_width = bar_width / 2.2
+        gen_mode_ax = self.fig.add_axes([x_start, modes_y, gen_mode_width, box_height])  # [0.7, 0.05, 0.1, 0.075])
+        gen_mode_button = Button(gen_mode_ax, "RANDOM" if self.reset_mode == RESET_RANDOM else "DATASET")
+        gen_mode_button.on_clicked(lambda event: self.gen_mode_clicked(gen_mode_button))
+        interface_utils.customize_button(gen_mode_button, mpl.rcParams)
+        self.buttons.append(gen_mode_button)
+        self.fig.text(x_start + gen_mode_width / 2, modes_y + 0.1, "Reset Mode", ha="center", va="center")
+
+        constraint_mode_width = gen_mode_width
+        space = bar_width - constraint_mode_width - gen_mode_width
+        s = x_start + gen_mode_width + space
+
+        constraint_mode_ax = self.fig.add_axes([s, modes_y, constraint_mode_width, box_height])  # [0.7, 0.05, 0.1, 0.075])
+        constraint_mode_button = Button(constraint_mode_ax, "PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA")
+        constraint_mode_button.on_clicked(lambda event: self.constraint_mode_clicked(constraint_mode_button))
+        interface_utils.customize_button(constraint_mode_button, mpl.rcParams)
+        self.buttons.append(constraint_mode_button)
+        self.fig.text(
+            x_start + gen_mode_width + space + constraint_mode_width / 2, modes_y + 0.1,
+            "Constraint Mode", ha="center", va="center"
+        )
+
+    def constraint_mode_clicked(self, button):
+        self.switch_constraint_mode()
+        button.label.set_text("PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA")
+        self.initialize_polygon()
+        self.update_graphics()
+
+    def switch_constraint_mode(self):
+        self.constraint = MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_AREA
+
+    def gen_mode_clicked(self, button):
+        self.switch_generation_mode()
+        button.label.set_text("RANDOM" if self.reset_mode == RESET_RANDOM else "DATASET")
+        self.reset()
+
+    def switch_generation_mode(self):
+        self.reset_mode = RESET_RANDOM if self.reset_mode == RESET_DATASET else RESET_DATASET
+
+    def dataset_exists(self, path):
+        return os.path.exists(path) and os.path.isfile(path)
+
+    def update_load_text(self, textbox):
+        if textbox.setting_text:
             return
 
-        self.currently_writing = True
+        textbox.currently_editing = True
+        txt = textbox.text
+
+        if txt != "":
+            file_location = f"saves/{textbox.text}.txt"
+            if self.dataset_exists(file_location):
+                textbox.update_color("green")
+            else:
+                textbox.update_color("red")
+            plt.draw()
+        else:
+            textbox.update_color("white")
+
+    def on_load_submit(self, textbox):
+        textbox.currently_editing = False
+        path = f"saves/{textbox.text}.txt"
+        if self.dataset_exists(path):
+            self.load_dataset(path)
+            self.current_dataset = path
+
+            self.update_title()
+            self.initialize_polygon()
+            self.update_graphics()
+            print(f"Dataset '{path}' loaded.")
+        else:
+            print(f"Invalid dataset '{path}'.")
+
+    def update_save_text(self, textbox):
+        if textbox.setting_text:
+            return
+
+        accepted_characters = "0123456789abcdefghijklmnopqrstuvwxyz_"
+        accepted_string = "".join([char for char in textbox.text if char in accepted_characters])
+        textbox.set_text(accepted_string)
+
+    def on_save_submit(self, textbox):
+        textbox.currently_editing = False
+        txt = textbox.text
+        if txt != "":
+            path = f"saves/{textbox.text}.txt"
+            self.save_points(path)
+            print(f"Dataset '{path}' saved.")
+        else:
+            print(f"Invalid dataset save path.")
+
+    def update_add_point(self, textbox):
+        if textbox.setting_text:
+            return
+
+        textbox.currently_editing = True
 
         textbox.set_text("".join([char for char in textbox.text.upper() if char in "-0123456789(),.BR "]))
 
@@ -154,8 +293,8 @@ class PolygonInterface:
                 textbox.cursor_index += 1
                 textbox.set_val(textbox.text[0] + insertion + textbox.text[1:])
 
-        color = "blue" if "B" in self.point_textbox.text else "red" if "R" in self.point_textbox.text else "white"
-        self.point_textbox.update_color(color)
+        color = "blue" if "B" in textbox.text else "red" if "R" in textbox.text else "white"
+        textbox.update_color(color)
         plt.draw()
 
     def add_point(self, textbox):
@@ -165,7 +304,7 @@ class PolygonInterface:
         or R(-8,2)
         """
 
-        self.currently_writing = False
+        textbox.currently_editing = False
         string = textbox.text
 
         try:
@@ -199,10 +338,11 @@ class PolygonInterface:
     def mouse_press(self, event):
         # Left click
         if event.button == 1 or event.button == 3:
-            if event.inaxes is self.point_textbox.ax:
-                self.currently_writing = True
-            else:
-                self.currently_writing = False
+            for t in self.textboxes:
+                if event.inaxes is t.ax:
+                    t.currently_editing = True
+                else:
+                    t.currently_editing = False
 
             prop = 1/50
 
@@ -253,9 +393,14 @@ class PolygonInterface:
         self.initialize_polygon()
 
     def key_pressed(self, event):
-        if self.currently_writing:
-            if event.key == "enter":
-                self.add_point(self.point_textbox)
+        editing = False
+        for t in self.textboxes:
+            if t.currently_editing:
+                editing = True
+                if event.key == "enter":
+                    t.submit_function()
+
+        if editing:
             return
 
         if event.key == " ":
@@ -272,12 +417,7 @@ class PolygonInterface:
                 self.polygon.polygon_patch.set_visible(not self.polygon.polygon_patch.get_visible())
                 plt.draw()
         elif event.key == "r":
-            if self.reset_mode == RESET_RANDOM or self.current_dataset is None:
-                self.set_random_points()
-            else:
-                self.load_dataset(self.current_dataset)
-            self.initialize_polygon()
-            self.update_graphics()
+            self.reset()
         elif event.key == "m":
             self.save_points(self.save_file)
         elif event.key == "c":
@@ -325,6 +465,8 @@ class PolygonInterface:
         self.update_points()
 
     def set_random_points(self):
+        if self.random_seed:
+            self.seed = random.randint(1, 1_000_000_000_000_000)
         self.points = poly_gen.get_random_points(self.seed, self.num_blue, self.num_red)
         self.update_points()
 
@@ -356,6 +498,14 @@ class PolygonInterface:
 
         self.blue_points_plot.set_data([blue_x, blue_y])
         self.red_points_plot.set_data([red_x, red_y])
+
+    def reset(self):
+        if self.reset_mode == RESET_RANDOM or self.current_dataset is None:
+            self.set_random_points()
+        else:
+            self.load_dataset(self.current_dataset)
+        self.initialize_polygon()
+        self.update_graphics()
 
     def create_polygon(self):
         self.polygon = poly.Polygon()
@@ -426,7 +576,7 @@ class PolygonInterface:
 
 interface = PolygonInterface()
 
-interface.current_dataset = "dataset.txt"
+interface.current_dataset = "saves/dataset.txt"
 interface.load_dataset(interface.current_dataset)
 interface.reset_mode = RESET_DATASET
 interface.initialize_polygon()
