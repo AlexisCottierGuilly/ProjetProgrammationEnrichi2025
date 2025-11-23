@@ -372,10 +372,10 @@ class PolygonInterface:
     def on_seed_submit(self, textbox):
         seed_text = textbox.text
         if seed_text == "":
-            self.random_seed = True
+            self.set_random_seed(True)
         else:
             self.set_reset_mode(RESET_RANDOM)
-            self.random_seed = False
+            self.set_random_seed(False)
             self.seed = int(seed_text)
             self.reset()
 
