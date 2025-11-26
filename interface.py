@@ -385,6 +385,26 @@ class PolygonInterface:
 
         accepted_characters = "0123456789"
         accepted_string = "".join([char for char in textbox.text if char in accepted_characters])
+
+        without_zeros = ""
+        for char in accepted_string:
+            if without_zeros != "" or char != "0":
+                without_zeros += char
+            else:
+                textbox.cursor_index -= 1
+        accepted_string = without_zeros
+
+        if accepted_string and int(accepted_string) > 999:
+            initial_length = len(accepted_string)
+            accepted_string = accepted_string[:3]
+            final_length = len(accepted_string)
+            textbox.cursor_index -= initial_length - final_length
+
+
+        if accepted_string == "":
+            accepted_string = "0"
+            textbox.cursor_index += 1
+
         textbox.set_text(accepted_string)
 
     def on_nb_pts_submit(self, textbox):
@@ -730,7 +750,7 @@ class PolygonInterface:
         else:
             title = f"Dataset '{self.current_dataset}'"
 
-        subtitle = f"P: {peri:.3f} u | A: {area:.3f} u^2"
+        subtitle = f"P: {peri:.3f} u | A: {area:.3f} u²"
         self.ax.set_title(f"{title}")
         self.ax.set_xlabel("\n" + subtitle)
 

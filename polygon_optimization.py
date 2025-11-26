@@ -65,11 +65,6 @@ def exclude_or_include_next(points, polygon, constraint=MINIMIZE_PERIMETER):
         else:
             pt_line_excluded.append([selected_point, line])
 
-        """p2 = line.point2
-        p2_i = polygon.points.index(p2)
-        polygon.points.insert(p2_i, selected_point)
-        polygon.update_lines()"""
-
 
 def convex_hull(points):
     """

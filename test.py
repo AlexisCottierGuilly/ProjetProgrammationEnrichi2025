@@ -80,14 +80,6 @@ def regenerate():
     random_included_points.set_data(included_pt_pos)
     random_excluded_points.set_data(excluded_pt_pos)
 
-    #polygon.generate(new_seed=True, scale=1, smoothness=1)
-
-    """
-    print([str(l) for l in polygon.lines])
-    print(f"Area: {polygon.get_area()} u^2")
-    print()
-    """
-
     update_lims(polygon)
 
     optim_time = 0

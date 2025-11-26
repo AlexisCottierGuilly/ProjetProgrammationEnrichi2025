@@ -87,8 +87,6 @@ def calculate_error(data, a, b):
     :return: the error
     """
 
-    #print(f"Calculating error for a={a} and b={b}")
-
     total_error = 0
     for x, y in data:
         predicted_y = a * x ** b

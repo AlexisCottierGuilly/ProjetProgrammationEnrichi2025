@@ -10,8 +10,7 @@ import random
 import matplotlib.pyplot as plt
 from colorama import init, Fore
 
-from multiprocessing import Pool, Value, Lock, Manager
-from threading import Thread
+from multiprocessing import Pool
 
 init(autoreset=True)
 NUMBER_OF_THREADS = 8
@@ -155,14 +154,6 @@ def best_perimeter_task(combinations, points, counter, lock):
                     current_best = p
                     current_best_peri = peri
 
-            """if iterations % 1000 == 0:
-                with lock:
-                    counter.value += 1000
-                    added_iterations += 1000"""
-
-    """with lock:
-        counter.value += iterations - added_iterations"""
-
     return {"best_peri": current_best_peri, "best_poly": current_best, "i": iterations}
 
 
@@ -188,21 +179,7 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
     theorical_max = get_total_iterations(len(points))
     i = 0
 
-    #with Manager() as manager:
-    #counter = Value("i", 0)  #manager.Value('i', 0)
-    #lock = Lock()  #manager.Lock()
-
     with Pool(nb_threads) as pool:
-        """def progress_watcher():
-            # Update progress bar
-            while counter.value < theorical_max:
-                callback(counter.value, theorical_max, current_best_peri)
-                time.sleep(0.2)
-            callback(counter.value, theorical_max, current_best_peri)
-
-        watcher = Thread(target=progress_watcher, daemon=True)
-        watcher.start()"""
-
         for k in range(3, len(points) + 1):
             all_combinations = get_all_combinations(points, k)
             combinations_blocks = separate_combinations(all_combinations, nb_threads)
@@ -211,28 +188,12 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
             results = pool.starmap(best_perimeter_task, infos_blocks)
             for result in results:
                 i += result["i"]
-                #print(f"Results: {result}")
                 if current_best is None or (result["best_peri"] != -1 and result["best_peri"] < current_best_peri):
                     current_best_peri = result["best_peri"]
                     current_best = result["best_poly"]
 
             if current_best_peri is not None:
                 callback(i, theorical_max, current_best_peri)
-
-            """for combination in get_all_combinations(points, k):
-                for permutation in get_all_permutations(combination):
-                    p = poly.Polygon(permutation)
-    
-                    i += 1
-                    if i % 1000 == 0 and callback is not None:
-                        callback(i, theorical_max, current_best_peri)
-    
-                    peri = p.get_perimeter()
-                    if current_best is None or peri < current_best_peri:
-                        if contains_all_blues_and_exclude_reds(p, points):
-                            current_best = p
-                            current_best_peri = peri"""
-        #watcher.join()
 
     return current_best
 

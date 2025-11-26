@@ -150,6 +150,7 @@ class Point:
     def __str__(self):
         return f"({self.x}, {self.y})"
 
+
 class Line:
     def __init__(self, point1, point2):
         self.point1 = point1
