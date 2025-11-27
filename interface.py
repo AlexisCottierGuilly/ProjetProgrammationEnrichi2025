@@ -27,6 +27,7 @@ Functionalities
  - Set number of points
 """
 
+# Visual matplotlib parameters (for dark mode)
 mpl.rcParams.update({
     'figure.facecolor': '#121212',
     'axes.facecolor': '#121212',
@@ -40,7 +41,7 @@ mpl.rcParams.update({
 
 
 class PolygonInterface:
-    def __init__(self, title="Polygon"):
+    def __init__(self):
         self.random_seed = True
 
         self.seed = 0
@@ -57,10 +58,11 @@ class PolygonInterface:
         self.draggable_point = None
         self.draggable_point_index = None
 
-        self.step_delay = 0  #0.01
+        self.step_delay = 0 #0.01
 
         self.fig = plt.figure(facecolor="#101010")
         self.fig.set_size_inches(10, 6, forward=True)
+        self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
         self.ax = self.fig.add_subplot(111, facecolor='#050505')
 
         self.blue_points_plot, = self.ax.plot([], [], 'o', color='blue')
@@ -93,12 +95,17 @@ class PolygonInterface:
         self.update_title()
 
     def initialize_communication(self):
+        # Get the inputs from matploblib (ex. mouse click, key press, ...)
         self.fig.canvas.mpl_connect('key_press_event', self.key_pressed)
         self.fig.canvas.mpl_connect('motion_notify_event', self.mouse_moved)
         self.fig.canvas.mpl_connect('button_press_event', self.mouse_press)
         self.fig.canvas.mpl_connect('button_release_event', self.mouse_release)
 
     def setup_buttons(self):
+        """
+        Setup the position, communications and visuals
+        for the UI (textboxes, texts, buttons).
+        """
         self.fig.subplots_adjust(bottom=0.2)
 
         vert_spacing = 0.15
@@ -285,6 +292,11 @@ class PolygonInterface:
 
         self.fig.text(s + rnd_seed_width / 2, seed_y + 0.1, "Random", ha="center", va="center")
 
+    """
+    The 'set' functions are used to intercept the values
+    in order to update the UI.
+    """
+
     def set_constraint(self, constraint):
         self.constraint = constraint
         for callback in self.constraint_callbacks:
@@ -317,12 +329,25 @@ class PolygonInterface:
             callback(state)
 
     def show_notification(self, text):
+        """
+        Show a text notification in grey at the bottom
+        of the screen for the user.
+
+        :param text: Text shown in the notification
+        :return:
+        """
+
         notification = self.fig.text(0.515, 0.07, text,
                        ha="center", va="center", color="grey")
 
         timer = self.fig.canvas.new_timer(interval=3000)
         timer.add_callback(lambda: (notification.remove() if notification in self.fig.texts else None , self.fig.canvas.draw_idle()))
         timer.start()
+
+    """
+    The 'get' functions are used to show some text to the
+    user, according to the interface's settings.
+    """
 
     def get_constraint_string(self):
         return "PERIMETER" if self.constraint == MINIMIZE_PERIMETER else "AREA"
@@ -332,6 +357,11 @@ class PolygonInterface:
 
     def get_step_mode_string(self):
         return "AUTO" if self.auto_step else "MANUAL"
+
+    """
+    The next functions are functions called when buttons are
+    pressed, textbox are edited and submitted (with 'enter'), etc.
+    """
 
     def random_seed_clicked(self, button):
         self.set_random_seed(not self.random_seed)
@@ -446,6 +476,8 @@ class PolygonInterface:
             self.update_graphics()
             print(f"Dataset '{path}' loaded.")
             self.show_notification(f"Loaded dataset '{path}'.")
+
+            textbox.set_text("")
         else:
             print(f"Invalid dataset '{path}'.")
 
@@ -473,6 +505,7 @@ class PolygonInterface:
             path = f"saves/{textbox.text}.txt"
             self.save_points(path)
             self.show_notification(f"Saved dataset as '{path}'.")
+            textbox.set_text("")
             print(f"Dataset '{path}' saved.")
         else:
             print(f"Invalid dataset save path.")
@@ -545,9 +578,19 @@ class PolygonInterface:
             self.update_graphics()
 
         except ValueError:
+            self.show_notification(f"Wrong point format '{string}'.")
             print("Wrong point format")
 
+    """
+    Now, the input functions, called when the user clicks and
+    presses a key for instance.
+    """
+
     def mouse_press(self, event):
+        """
+        The user can click to drag points and to start editing textboxes
+        """
+
         # Left click
         if event.button == 1 or event.button == 3:
             for t in self.textboxes:
@@ -586,16 +629,29 @@ class PolygonInterface:
                         self.draggable_point_index = None
 
     def mouse_moved(self, event):
+        """
+        If the user clicked a point in 'mouse_press', the point is
+        dragged through the window.
+        """
         if self.draggable_point is not None:
             new_pos = event.xdata, event.ydata
             if new_pos[0] and new_pos[1]:
                 plot = self.blue_points_plot if self.draggable_point.state == poly.INCLUDED else self.red_points_plot
                 interface_utils.modify_point(new_pos, self.draggable_point, self.draggable_point_index, plot)
 
-                self.initialize_polygon()
+                if len(self.points) <= 200:
+                    self.initialize_polygon()
                 plt.draw()
 
     def mouse_release(self, event):
+        """
+        If a point was dragged, now it is not :)
+
+        Autosaving (not activated by default), also
+        triggers here to save any changes when a point
+        is moved.
+        """
+
         if self.auto_save and self.draggable_point is not None:
             self.save_points(self.save_file)
 
@@ -606,6 +662,23 @@ class PolygonInterface:
         self.draggable_point_index = None
 
     def key_pressed(self, event):
+        """
+        Capture every user key press inputs.
+        Some shortcuts can be used here:
+            * 'enter': to submit a text in a textbox
+            * 'space': step 1 in polygon generation
+            * 'c': switch constraint ('perimeter' and 'area')
+            * 'h': hide/show the polygon
+            * 'r': reset the polygon / regenerate
+            * 's': save polygon to self.save_file
+            * 'x': clear all points
+            * 'a': enable/disable auto step mode
+            * 'enter' (not editing textbox): reload polygon
+            * 'backspace': remove currently dragged point
+            * '1': place and drag blue point
+            * '2' place and drag red point
+        """
+
         editing = False
         for t in self.textboxes:
             if t.currently_editing:
@@ -619,7 +692,7 @@ class PolygonInterface:
         if event.key == " " and not self.auto_step:
             self.step()
         elif event.key == "c":
-            self.set_constraint(MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_PERIMETER)
+            self.set_constraint(MINIMIZE_PERIMETER if self.constraint == MINIMIZE_AREA else MINIMIZE_AREA)
             self.initialize_polygon()
             self.update_graphics()
         elif event.key == "h":
@@ -628,9 +701,9 @@ class PolygonInterface:
                 plt.draw()
         elif event.key == "r" or (event.key == " " and self.auto_step):
             self.reset()
-        elif event.key == "m":
+        elif event.key == "s":
             self.save_points(self.save_file)
-        elif event.key == "c":
+        elif event.key == "x":
             self.remove_all_points()
             self.initialize_polygon()
             self.update_graphics()
@@ -675,6 +748,10 @@ class PolygonInterface:
         self.update_points()
 
     def set_random_points(self):
+        """
+        Set random points with x ∈ [-1, 1] and y ∈ [-1, 1]
+        """
+
         if self.random_seed:
             self.set_seed(random.randint(1, 1_000_000_000_000))
         self.points = poly_gen.get_random_points(self.seed, self.num_blue, self.num_red)
@@ -690,6 +767,11 @@ class PolygonInterface:
             print(f"Points saved as '{filepath}'.")
 
     def update_points(self):
+        """
+        Update the scatter plots with the corresponding
+        blue and red dataset.
+        """
+
         self.draggable_point = None
         self.draggable_point_index = None
 
@@ -710,6 +792,11 @@ class PolygonInterface:
         self.red_points_plot.set_data([red_x, red_y])
 
     def reset(self):
+        """
+        Reload new random points (with seed) or
+        reload dataset depensing on the reset mode.
+        """
+
         if self.reset_mode == RESET_RANDOM or self.current_dataset is None:
             self.set_random_points()
         else:
@@ -729,6 +816,11 @@ class PolygonInterface:
             self.step()
 
     def step(self):
+        """
+        If auto step is activated, step until the polygon
+        is completed, else step once.
+        """
+
         while True:
             modified = self.polygon.optimize(self.points, update_bounds=False, update_patch=False, constraint=self.constraint)
 
@@ -740,6 +832,11 @@ class PolygonInterface:
         self.update_graphics()
 
     def update_title(self):
+        """
+        Show the dataset or seed at the top and
+        the area and perimeter at the bottom.
+        """
+
         peri = area = 0
         if self.polygon is not None:
             peri = self.polygon.get_perimeter()
@@ -755,6 +852,11 @@ class PolygonInterface:
         self.ax.set_xlabel("\n" + subtitle)
 
     def update_graphics(self):
+        """
+        Reload the polygon patch with the current points
+        and update the title.
+        """
+
         if self.polygon is not None:
             self.polygon.update_patch_polygon()
             self.update_title()
@@ -764,6 +866,10 @@ class PolygonInterface:
         plt.show()
 
     def resize_limits(self):
+        """
+        Make sure the current polygon is in bounds.
+        """
+
         self.polygon.recalculate_bounds()
 
         if len(self.polygon.points) >= 3:
@@ -786,12 +892,16 @@ class PolygonInterface:
         self.ax.set_aspect('equal')
 
 
+# Initialize the interface's class instance
 interface = PolygonInterface()
 
+interface.initialize_polygon()
+interface.update_graphics()
+
+"""
 interface.current_dataset = "saves/dataset.txt"
 interface.load_dataset(interface.current_dataset)
 interface.set_reset_mode(RESET_DATASET)
-interface.initialize_polygon()
-interface.update_graphics()
+"""
 
 interface.show()
