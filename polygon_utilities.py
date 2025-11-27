@@ -6,6 +6,11 @@ from constants import *
 
 
 def calculate_bounds(polygon):
+    """
+    Loop through the polygon's lines to find
+    the extremums.
+    """
+
     if len(polygon.points) == 0:
         return [(0, 0), (0, 0)]
 
@@ -39,17 +44,17 @@ def calculate_bounds(polygon):
 
 
 def point_in_polygon(point, polygon):
-    '''
+    """
     Using a Ray-Casting Algorithm (Crossing Number Algorithm)
     If a ray incoming from infinity to our point crosses
     an odd number of times the polygon's borders, the point
     is inside the polygon (the opposite is also true).
 
     Steps:
-    1 - Cast a ray to thr right of the point
+    1 - Cast a ray to the right of the point
     2 - Calculate the number of intersections with
         the border.
-    '''
+    """
 
     lines_crossed = 0
     for line in polygon.lines:
@@ -72,7 +77,12 @@ def calculate_area(polygon):
 
 
 def calculate_lines_area(lines):
-    # Shoelace Formula
+    """
+    Showlace formula
+
+    Compute the half of the absolute value of the
+    sum of the determinants of all lines.
+    """
 
     total_area = 0
     for line in lines:
@@ -84,6 +94,10 @@ def calculate_lines_area(lines):
 
 
 def calculate_perimeter(polygon):
+    """
+    Add each lines' lengths together.
+    """
+
     perimeter = 0
     for line in polygon.lines:
         perimeter += line.get_length()
@@ -92,6 +106,12 @@ def calculate_perimeter(polygon):
 
 
 def point_to_line_distance(point, line):
+    """
+    Use the linear algebra formulas to calculate this distance.
+    Because the line is finite, clamp the values to get an
+    orthogonal projection within bounds.
+    """
+
     x1, y1 = line.point1.x, line.point1.y
     x2, y2 = line.point2.x, line.point2.y
 
@@ -114,7 +134,9 @@ def point_to_line_distance(point, line):
 
 
 def get_included_excluded(points, polygon):
-    # Returns a list of all excluded points that are still in the polygon
+    """
+    Returns a list of all excluded points that are still in the polygon
+    """
     included_excluded_points = []
 
     for point in points:
@@ -127,7 +149,10 @@ def get_included_excluded(points, polygon):
 
 
 def get_excluded_included(points, polygon, constraint=MINIMIZE_PERIMETER):
-    # Returns a list of all included points that are still outside the polygon
+    """
+    Returns a list of all included points that are still outside the polygon
+    """
+
     excluded_included_points = []
 
     for point in points:
@@ -143,6 +168,11 @@ def get_excluded_included(points, polygon, constraint=MINIMIZE_PERIMETER):
 
 
 def intersects_with_line(line1, line2):
+    """
+    With online research, this approach was the easiest
+    and most efficient.
+    """
+
     o1 = poly_optim.cross(line1.point1, line1.point2, line2.point1)
     o2 = poly_optim.cross(line1.point1, line1.point2, line2.point2)
     o3 = poly_optim.cross(line2.point1, line2.point2, line1.point1)
@@ -164,6 +194,11 @@ def intersects_with_line(line1, line2):
 
 
 def on_segment(p1, p2, p):
+    """
+    Check if the point p is on the line going
+    from p1 to p2.
+    """
+
     if min(p1.x, p2.x) < p.x < max(p1.x, p2.x) and min(p1.y, p2.y) < p.y < max(p1.y, p2.y):
         return True
     return False

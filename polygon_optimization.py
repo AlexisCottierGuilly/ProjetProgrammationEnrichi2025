@@ -5,6 +5,22 @@ from constants import *
 
 
 def exclude_or_include_next(points, polygon, constraint=MINIMIZE_PERIMETER):
+    """
+    Main focus of our algorithm.
+    The goal (to minimize the perimeter), is to take the
+    point with the maximum perimeter modification in its side that
+    modifies the least the perimeter.
+
+    In a few words: take the point that will make the biggest
+    change when included.
+
+    Then, connect it to the polygon.
+
+    :param points: Problematic points that needs inclusion/exclusion
+    :param polygon: Current polygon
+    :param constraint: Minimization parameter (perimeter or area)
+    """
+
     if not points:
         return
 
@@ -108,6 +124,14 @@ def convex_hull(points):
 
 
 def cross(current_pt, next_pt, pt):
+    """
+    Find the determinant between:
+        * The vector current -> next
+        * The vector current -> point (another point)
+
+    This function is used to compare vector angles.
+    """
+
     v1 = [
         next_pt.x - current_pt.x,
         next_pt.y - current_pt.y
@@ -122,4 +146,5 @@ def cross(current_pt, next_pt, pt):
 
 
 def distance(p1, p2):
+    # Distance between two points
     return math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)

@@ -5,6 +5,11 @@ import random
 
 
 def generate_polygon_points(seed, center, scale, smoothness=1):
+    """
+    Generate a polygon dataset using perlin noise
+    to create a natural-like shape around a center.
+    """
+
     points = []
     noise = OpenSimplex(seed)
 
@@ -31,6 +36,12 @@ def generate_polygon_points(seed, center, scale, smoothness=1):
 
 
 def get_random_points(seed, included_pts=10, excluded_pts=10, x_range=None, y_range=None):
+    """
+    Simple function giving a list of point with a few restrictions
+    like the number of point and the coordinate range, as well
+    as the specification of a seed.
+    """
+
     x_range = x_range or [0, 1]
     y_range = y_range or [0, 1]
 

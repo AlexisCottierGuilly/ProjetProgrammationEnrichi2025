@@ -4,6 +4,15 @@ import parameter_optimization as para_optim
 import time
 import matplotlib.pyplot as plt
 
+"""
+This program estimated the computational complexity
+of the polygon generator function, with multiple
+number of points to approximate the function
+    y = ax^b
+
+Function that represents the computational complexity.
+"""
+
 # ~O(n^3)
 
 iterations_per_num = 5

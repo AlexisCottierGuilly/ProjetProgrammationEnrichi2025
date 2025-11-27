@@ -17,6 +17,9 @@ NUMBER_OF_THREADS = 8
 
 
 def update_bar(current, total, best_perimeter):
+    """
+    Show the progress of the brute force algorithm to the user.
+    """
     percentage = current / total * 100
     bar = '#' * int(percentage / 2) + '-' * (50 - int(percentage / 2))
     bar = f"{current} [{bar}] {total} (Current best: {best_perimeter:.4f} u)"
@@ -25,6 +28,12 @@ def update_bar(current, total, best_perimeter):
 
 
 def compare_graphs(p1, p2, points):
+    """
+    Show a little matplotlib preview to the user,
+    to compare two polygons (p1 and p2), and examine their
+    differences (if there are).
+    """
+
     def on_key_press(pressed_key, polygon):
         if pressed_key.key == 'h':
             if polygon.polygon_patch.get_alpha() == 0:
@@ -68,6 +77,11 @@ def compare_graphs(p1, p2, points):
 
 
 def contains_all_blues_and_exclude_reds(polygon, points):
+    """
+    Test if all the points (blue and red) respect the
+    restrictions with the restriction polygon.
+    """
+
     pts_without_extremities = []
     for pt in points:
         if pt not in polygon.points:
@@ -84,6 +98,11 @@ def contains_all_blues_and_exclude_reds(polygon, points):
 
 
 def get_all_combinations(points, n):
+    """
+    Returns a list of all the combinations possible of n
+    points from a certain dataset.
+    """
+
     # Choose only a few points
     combinations = []
     nb_pts = len(points)
@@ -103,7 +122,13 @@ def get_all_combinations(points, n):
 
 
 def get_all_permutations(points):
-    # Implementation of the Heap’s algorithm
+    """
+    Implementation of the Heap’s algorithm
+
+    Returns a list of all the permutations of
+    a certain list of points.
+    """
+
     nb_pts = len(points)
 
     permutations = []
@@ -131,6 +156,11 @@ def get_all_permutations(points):
 
 
 def get_total_iterations(n):
+    """
+    Get the actual number of polygons that can be generated from
+    a dataset of n points.
+    """
+
     total = 0
     for k in range(3, n+1):
         total += math.comb(n, k) * math.factorial(k)
@@ -138,6 +168,13 @@ def get_total_iterations(n):
 
 
 def best_perimeter_task(combinations, points, counter, lock):
+    """
+    For subprocessing, separate each polygon brute force
+    generation in some smaller batches.
+
+    Returns the local best polygon.
+    """
+
     current_best = None
     current_best_peri = -1
     iterations = 0
@@ -158,6 +195,11 @@ def best_perimeter_task(combinations, points, counter, lock):
 
 
 def separate_combinations(combinations, n):
+    """
+    Split a list of combinations into some smaller lists in
+    order to create some subprocesses.
+    """
+
     blocks_steps = len(combinations) // n
     blocks = []
     for i in range(n):
@@ -171,8 +213,15 @@ def separate_combinations(combinations, n):
 
 
 def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREADS):
-    # Choose a random point path
-    # For each point, take it or leave it, in a random order
+    """
+    Choose a random point path
+    For each point, take it or leave it, in a random order
+
+    Continue (with subprocesses) to iterate through all possibilities
+    to find the most optimal polygon (the one with the smallest
+    perimeter).
+    """
+
     current_best = None
     current_best_peri = -1
 
@@ -200,6 +249,7 @@ def get_best_perimeter_polygon(points, callback=None, nb_threads=NUMBER_OF_THREA
 
 def get_min_perimeter_include_exclude(points, calculated_min=None, constraint=MINIMIZE_PERIMETER):
     """
+    New algorithm.
     Test all polygons created by generating all include/exclude step orders
 
     :param points: The set of blue and red points
@@ -299,6 +349,21 @@ def get_min_perimeter_include_exclude(points, calculated_min=None, constraint=MI
 
 
 if __name__ == "__main__":
+    """
+    Main loop
+    The user can set the seed and see if the polygon generated
+    by the original algorithm is the same then the brute force
+    algorithm, to ensure the best polygon is actually the
+    best possible one.
+    
+    With the first algorithm, more than 10 points is realllllly long,
+    but with the new algorithm the number of points can be set to around 28.
+    
+    By clicking 's', we can see a matplotlib preview
+    showcasing the two polygons in two different colors,
+    in order to compare them.
+    """
+
     auto_test = False
     next_seed = None
     while True:

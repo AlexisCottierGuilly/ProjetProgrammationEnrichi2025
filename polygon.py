@@ -142,6 +142,10 @@ class Polygon:
 
 
 class Point:
+    """
+    Helper class to store each coordinate point and
+    its state (included or excluded).
+    """
     def __init__(self, x, y, state=INCLUDED):
         self.x = x
         self.y = y
@@ -152,6 +156,10 @@ class Point:
 
 
 class Line:
+    """
+    Helper class to store a vertex (line) between two points.
+    Some functions to get the lengths and directions.
+    """
     def __init__(self, point1, point2):
         self.point1 = point1
         self.point2 = point2

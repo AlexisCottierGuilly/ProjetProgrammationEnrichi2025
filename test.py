@@ -19,6 +19,11 @@ mpl.rcParams.update({
 
 
 def on_mouse_move(event):
+    """
+    Move a 'x' shape small cursor to the mouse position and
+    change its color whether it is in or outside the polygon.
+    """
+
     if event.inaxes:
         x, y = event.xdata, event.ydata
         point.set_data([x], [y])
@@ -32,6 +37,12 @@ def on_mouse_move(event):
 
 
 def on_key_press(pressed_key):
+    """
+    Some shorcuts:
+        * 'r': regenerate polygon
+        * 'o': compute a single optimization step
+    """
+
     if pressed_key.key == 'r':
         regenerate()
     elif pressed_key.key == 'o':
@@ -39,6 +50,10 @@ def on_key_press(pressed_key):
 
 
 def optimize():
+    """
+    Make an single optimization step.
+    """
+
     print("Optimize")
     polygon.optimize(pts)
     update_lims(polygon)
@@ -46,6 +61,13 @@ def optimize():
 
 
 def regenerate():
+    """
+    Regenerate a new polygon with new random points,
+    the polygon generation can be animated.
+    The limits are also resized so the resulting polygon fits
+    in the bounds of the screen.
+    """
+
     global pts
     pts = []
 
@@ -108,6 +130,11 @@ def regenerate():
 
 
 def update_lims(ply):
+    """
+    Update the axis limits so the polygon fits inside
+    the screen's bounds.
+    """
+
     spacing_factor = 1.25
     offset = ply.bounds[0]
     size = max(ply.bounds[1]) / 2
@@ -122,6 +149,11 @@ def update_lims(ply):
     )
     ax.set_aspect('equal')
 
+
+"""
+Setup the plots, polygons, points, figure and axis we use.
+Show the window.
+"""
 
 fig = plt.figure(facecolor="#101010")
 ax = fig.add_subplot(111, facecolor='#050505')
